@@ -59,7 +59,7 @@ func autoCompleteCmdPath(input string) [][]byte {
 
 	for _, dir := range directories {
 		files, err := os.ReadDir(dir)
-		if err == os.ErrPermission {
+		if os.IsPermission(err) {
 			fmt.Fprintf(os.Stderr, "insufficient permission to read directory: %v", dir)
 			continue
 		}
@@ -124,18 +124,18 @@ func checkLongestCommonPrefix(matches []string) string {
 	if len(matches) <= 0 {
 		return ""
 	}
-	f := matches[0]
+	prefix := matches[0]
 
-	for i := 0; i < len(f); i++ {
-		char := f[i]
+	for i := 0; i < len(prefix); i++ {
+		char := prefix[i]
 
 		for j := 1; j < len(matches); j++ {
-			if i >= len(matches) || matches[i][j] != char {
-				return f[:i]
+			if i >= len(matches) || matches[j][i] != char {
+				return prefix[:i]
 			}
 		}
 	}
-	return f
+	return prefix
 }
 
 func buildMatches(rest [][]byte) []string {
