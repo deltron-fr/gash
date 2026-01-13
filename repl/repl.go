@@ -2,6 +2,7 @@ package repl
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/deltron-fr/dshell/commands"
 	"github.com/deltron-fr/dshell/input"
@@ -9,10 +10,24 @@ import (
 )
 
 func StartRepl() {
+	var buffer string
+
 	for {
 		fmt.Print("$ ")
 
-		input := input.RawModeHandler()
+		input, tabMatches := input.RawModeHandler(buffer)
+		
+		if len(tabMatches) > 0 {
+			for _, match := range tabMatches {
+				fmt.Fprintf(os.Stdout, "%s  ", match)
+			}
+			fmt.Println()
+			buffer = input
+			continue
+		}
+
+		buffer = ""
+
 		if input == "" {
 			continue
 		}

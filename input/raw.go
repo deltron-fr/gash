@@ -6,11 +6,12 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sort"
 
 	"golang.org/x/term"
 )
 
-func RawModeHandler() string {
+func RawModeHandler(currentBuffer string) (string, []string) {
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -19,10 +20,20 @@ func RawModeHandler() string {
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
 	r := bufio.NewReader(os.Stdin)
+
 	var buffer []byte
 	var cursorPos int
+	var tabPressed bool
 
 	for {
+		if currentBuffer != "" {
+			fmt.Fprintf(os.Stdout, currentBuffer)
+			cursorPos += len(currentBuffer)
+			buffer = append(buffer, []byte(currentBuffer)...)
+			currentBuffer = ""
+			continue
+		}
+
 		b, err := r.ReadByte()
 		if err == io.EOF {
 			break
@@ -33,12 +44,13 @@ func RawModeHandler() string {
 
 		if b == 0x0D {
 			fmt.Fprintf(os.Stdout, "\r\n")
-			return string(buffer)
+			return string(buffer), []string{}
 		}
 
 		if b <= 0x1f || b == 0x7f {
 			switch b {
 			case 0x1b:
+				tabPressed = false
 				key := handleKeys(r)
 				switch key {
 				case "":
@@ -56,9 +68,10 @@ func RawModeHandler() string {
 				}
 			case 0x0A, 0x0C:
 				fmt.Fprintf(os.Stdout, "\r\n")
-				return string(buffer)
+				return string(buffer), []string{}
 
 			case 0x7f, 0x08:
+				tabPressed = false
 				if len(buffer) == 0 {
 					continue
 				}
@@ -70,6 +83,7 @@ func RawModeHandler() string {
 
 			case 0x09:
 				if len(buffer) == 0 {
+					fmt.Fprintf(os.Stdout, "\x07")
 					continue
 				}
 
@@ -77,10 +91,26 @@ func RawModeHandler() string {
 				targetInput := parts[len(parts)-1]
 				restOfInput := autoCompletion(targetInput)
 				if len(restOfInput) == 0 {
+					fmt.Fprintf(os.Stdout, "\x07")
 					continue
 				}
 
-				for _, b := range restOfInput {
+				if len(restOfInput) > 1 {
+					var matches []string
+					if tabPressed {
+						for _, bytes := range restOfInput {
+							matches = append(matches, string(bytes))
+							sort.Strings(matches)
+						}
+						fmt.Fprintf(os.Stdout, "\r\n")
+						return string(buffer), matches
+					}
+					tabPressed = true
+					fmt.Fprintf(os.Stdout, "\x07")
+					continue
+				}
+
+				for _, b := range restOfInput[0] {
 					fmt.Fprintf(os.Stdout, "%c", b)
 					buffer = append(buffer, b)
 					cursorPos++
@@ -108,5 +138,5 @@ func RawModeHandler() string {
 			}
 		}
 	}
-	return ""
+	return "", []string{}
 }

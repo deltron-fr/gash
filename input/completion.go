@@ -8,7 +8,7 @@ import (
 	"github.com/deltron-fr/dshell/commands"
 )
 
-func autoCompletion(input string) []byte {
+func autoCompletion(input string) [][]byte {
 	out := autoCompleteCmds(input)
 	if len(out) != 0 {
 		return out
@@ -24,33 +24,36 @@ func autoCompletion(input string) []byte {
 		return out
 	}
 
-	return []byte{}
+	return [][]byte{}
 }
 
-func autoCompleteCmds(input string) []byte {
-	var cmdName string
+func autoCompleteCmds(input string) [][]byte {
+	matches := make([][]byte, 0, 70)
 
 	commands := commands.Commands()
 	for _, v := range commands {
 		if strings.HasPrefix(v.Name, input) {
-			cmdName = v.Name
-			break
+			matches = append(matches, []byte(v.Name))
 		}
 	}
 
-	if cmdName == "" {
-		return []byte{}
+	if len(matches) == 0 {
+		return [][]byte{}
+	} else if len(matches) == 1 {
+		singleMatch := make([][]byte, 0, 1)
+		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
+		return singleMatch
 	}
 
-	return []byte(cmdName[len(input):])
+	return matches
 }
 
-func autoCompleteCmdPath(input string) []byte {
+func autoCompleteCmdPath(input string) [][]byte {
 	pathEnv := os.Getenv("PATH")
 	separator := string(os.PathListSeparator)
 
 	directories := strings.Split(pathEnv, separator)
-	var extCmd string
+	matches := make([][]byte, 0, 70)
 
 	for _, dir := range directories {
 		files, err := os.ReadDir(dir)
@@ -65,46 +68,49 @@ func autoCompleteCmdPath(input string) []byte {
 			}
 
 			if strings.HasPrefix(f.Name(), input) {
-				extCmd = f.Name()
-				break
+				matches = append(matches, []byte(f.Name()))
 			}
 		}
-		if extCmd != "" {
-			break
-		}
 	}
 
-	if extCmd == "" {
-		return []byte{}
-	}
+	if len(matches) == 0 {
+		return [][]byte{}
+	} else if len(matches) == 1 {
+		singleMatch := make([][]byte, 0, 1)
+		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
+		return singleMatch
+	} 
 
-	return []byte(extCmd[len(input):])
+	return matches
 }
 
-func autoCompleteFiles(input string) []byte {
+func autoCompleteFiles(input string) [][]byte {
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting current working directory: %v", err)
-		return []byte{}
+		return [][]byte{}
 	}
 
 	files, err := os.ReadDir(pwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
-		return []byte{}
+		return [][]byte{}
 	}
 
-	var fileName string
+	matches := make([][]byte, 0, 70)
 	for _, f := range files {
 		if strings.HasPrefix(f.Name(), input) {
-			fileName = f.Name()
-			break
+			matches = append(matches, []byte(f.Name()))
 		}
 	}
 
-	if fileName == "" {
-		return []byte{}
+	if len(matches) == 0 {
+		return [][]byte{}
+	} else if len(matches) == 1 {
+		singleMatch := make([][]byte, 0, 1)
+		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
+		return singleMatch
 	}
 
-	return []byte(fileName[len(input):])
+	return matches
 }
