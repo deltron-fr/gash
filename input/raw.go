@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"golang.org/x/term"
+	"github.com/deltron-fr/dshell/commands"
 )
 
-func RawModeHandler(currentBuffer string) (string, []string) {
+func RawModeHandler(currentBuffer string, history []commands.History) (string, []string) {
 	// RawModeHandler enters the terminal's raw mode and reads user input
 	// byte-by-byte. It supports basic line editing (left/right/delete),
 	// tab completion, and returns once the user presses Enter.
@@ -18,6 +19,8 @@ func RawModeHandler(currentBuffer string) (string, []string) {
 	// Parameters:
 	//   currentBuffer - an optional string that will be prefilled into
 	//                   the input buffer before reading further keys.
+	//	 history - contains the history of previous commands for up and 
+	//             down arrow navigation.			
 	//
 	// Returns:
 	//   string - the full input line the user typed (without trailing newline)
@@ -40,6 +43,11 @@ func RawModeHandler(currentBuffer string) (string, []string) {
 	var buffer []byte
 	var cursorPos int
 	var tabPressed bool
+
+	var historyTracker int
+	if len(history) > 0 {
+		historyTracker = len(history)
+	}
 
 	for {
 		if currentBuffer != "" {
@@ -81,6 +89,59 @@ func RawModeHandler(currentBuffer string) (string, []string) {
 						fmt.Fprintf(os.Stdout, "\x1b[C")
 						cursorPos++
 					}
+				case "Up":
+					if len(history) == 0 {
+						continue
+					}
+
+					if historyTracker <= 0 {
+						continue
+					}
+
+					for range buffer {
+						fmt.Fprintf(os.Stdout, "\x1b[D")
+						fmt.Fprintf(os.Stdout, " ")
+						fmt.Fprintf(os.Stdout, "\x1b[D")
+						cursorPos--
+					}
+					
+					historyTracker--
+					buffer = []byte{}
+					fmt.Print(history[historyTracker].Name)
+					cursorPos = 0
+					cursorPos += len(history[historyTracker].Name)
+					buffer = append(buffer, []byte(history[historyTracker].Name)...)
+				case "Down":
+					if len(history) == 0 {
+						continue
+					}
+
+					if historyTracker >= len(history)-1 {
+						if len(buffer) != 0 {
+							for range buffer {
+								fmt.Fprintf(os.Stdout, "\x1b[D")
+								fmt.Fprintf(os.Stdout, " ")
+								fmt.Fprintf(os.Stdout, "\x1b[D")
+								cursorPos--
+							}
+							buffer = []byte{}
+						}				
+						continue
+					}
+
+					for range buffer {
+						fmt.Fprintf(os.Stdout, "\x1b[D")
+						fmt.Fprintf(os.Stdout, " ")
+						fmt.Fprintf(os.Stdout, "\x1b[D")
+						cursorPos--
+					}
+
+					historyTracker++
+					buffer = []byte{}
+					fmt.Print(history[historyTracker].Name)
+					cursorPos = 0
+					cursorPos += len(history[historyTracker].Name)
+					buffer = append(buffer, []byte(history[historyTracker].Name)...)
 				}
 			case 0x0A, 0x0C:
 				fmt.Fprintf(os.Stdout, "\r\n")

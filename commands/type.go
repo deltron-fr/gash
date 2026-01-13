@@ -7,7 +7,7 @@ import (
 	"github.com/deltron-fr/dshell/fs"
 )
 
-func handleType(cmdName, redirection string, args ...string) {
+func handleType(cmdName, redirection string, inputHistory []History, args ...string) {
 	availableCmds := Commands()
 
 	if redirection == "" {

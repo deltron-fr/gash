@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func handleEcho(cmdName, redirection string, args ...string) {
+func handleEcho(cmdName, redirection string, inputHistory []History, args ...string) {
 	if redirection == "" {
 		for _, w := range args {
 			fmt.Printf("%s ", w)

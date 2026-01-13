@@ -17,11 +17,12 @@ func StartRepl() {
 	//
 	// `exit` builtin will terminate this process.
 	var buffer string
+	inputHistory := make([]commands.History, 0, 400)
 
 	for {
 		fmt.Print("$ ")
 
-		input, tabMatches := input.RawModeHandler(buffer)
+		input, tabMatches := input.RawModeHandler(buffer, inputHistory)
 
 		if len(tabMatches) > 0 {
 			for _, match := range tabMatches {
@@ -37,6 +38,9 @@ func StartRepl() {
 		if input == "" {
 			continue
 		}
+
+		h := commands.AddEntry(input, inputHistory)
+		inputHistory = append(inputHistory, *h)
 
 		var cmd string
 		var extraArgs []string
@@ -77,7 +81,7 @@ func StartRepl() {
 		builtinCmds := commands.Commands()
 
 		if command, exists := builtinCmds[cmd]; exists {
-			command.Callback(command.Name, redCmd.Name, extraArgs...)
+			command.Callback(command.Name, redCmd.Name, inputHistory, extraArgs...)
 		} else {
 			commands.HandleExec(cmd, redCmd.Name, extraArgs...)
 		}
