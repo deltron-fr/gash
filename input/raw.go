@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sort"
 
 	"golang.org/x/term"
 )
@@ -27,7 +26,7 @@ func RawModeHandler(currentBuffer string) (string, []string) {
 
 	for {
 		if currentBuffer != "" {
-			fmt.Fprintf(os.Stdout, currentBuffer)
+			fmt.Fprint(os.Stdout, currentBuffer)
 			cursorPos += len(currentBuffer)
 			buffer = append(buffer, []byte(currentBuffer)...)
 			currentBuffer = ""
@@ -96,15 +95,21 @@ func RawModeHandler(currentBuffer string) (string, []string) {
 				}
 
 				if len(restOfInput) > 1 {
-					var matches []string
+					matches := buildMatches(restOfInput)
+
 					if tabPressed {
-						for _, bytes := range restOfInput {
-							matches = append(matches, string(bytes))
-							sort.Strings(matches)
-						}
 						fmt.Fprintf(os.Stdout, "\r\n")
 						return string(buffer), matches
 					}
+
+					lcp := checkLongestCommonPrefix(matches)
+					if len(lcp) > len(buffer) && lcp != string(buffer) {
+						bufferLen := len(buffer)
+						fmt.Fprint(os.Stdout, lcp[bufferLen:])
+						cursorPos += len(lcp[bufferLen:])
+						buffer = append(buffer, []byte(lcp[bufferLen:])...)
+					}
+
 					tabPressed = true
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue

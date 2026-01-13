@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sort"
 
 	"github.com/deltron-fr/dshell/commands"
 )
@@ -54,6 +55,7 @@ func autoCompleteCmdPath(input string) [][]byte {
 
 	directories := strings.Split(pathEnv, separator)
 	matches := make([][]byte, 0, 70)
+	seen := make(map[string]bool)
 
 	for _, dir := range directories {
 		files, err := os.ReadDir(dir)
@@ -68,7 +70,10 @@ func autoCompleteCmdPath(input string) [][]byte {
 			}
 
 			if strings.HasPrefix(f.Name(), input) {
-				matches = append(matches, []byte(f.Name()))
+				if !seen[f.Name()] {
+					matches = append(matches, []byte(f.Name()))
+					seen[f.Name()] = true
+				}
 			}
 		}
 	}
@@ -113,4 +118,31 @@ func autoCompleteFiles(input string) [][]byte {
 	}
 
 	return matches
+}
+
+func checkLongestCommonPrefix(matches []string) string {
+	if len(matches) <= 0 {
+		return ""
+	}
+	f := matches[0]
+
+	for i := 0; i < len(f); i++ {
+		char := f[i]
+
+		for j := 1; j < len(matches); j++ {
+			if i >= len(matches) || matches[i][j] != char {
+				return f[:i]
+			}
+		}
+	}
+	return f
+}
+
+func buildMatches(rest [][]byte) []string {
+    matches := make([]string, 0, len(rest))
+    for _, b := range rest {
+        matches = append(matches, string(b))
+    }
+    sort.Strings(matches)
+    return matches
 }
