@@ -3,12 +3,14 @@ package input
 import (
 	"fmt"
 	"os"
-	"strings"
 	"sort"
+	"strings"
 
 	"github.com/deltron-fr/dshell/commands"
 )
 
+// autoCompletion tries the completion sources in order and
+// returns the first non-empty set of byte-slices to use for tab completion.
 func autoCompletion(input string) [][]byte {
 	out := autoCompleteCmds(input)
 	if len(out) != 0 {
@@ -29,6 +31,7 @@ func autoCompletion(input string) [][]byte {
 }
 
 func autoCompleteCmds(input string) [][]byte {
+	// Return slices of bytes for matches of built-in commands.
 	matches := make([][]byte, 0, 70)
 
 	commands := commands.Commands()
@@ -49,6 +52,10 @@ func autoCompleteCmds(input string) [][]byte {
 	return matches
 }
 
+// autoCompleteCmdPath looks for executable files on $PATH whose names start with
+// the provided input string. Returns either a list of full matches
+// or a single entry containing only the suffix to append if only
+// one match is found.
 func autoCompleteCmdPath(input string) [][]byte {
 	pathEnv := os.Getenv("PATH")
 	separator := string(os.PathListSeparator)
@@ -84,12 +91,17 @@ func autoCompleteCmdPath(input string) [][]byte {
 		singleMatch := make([][]byte, 0, 1)
 		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
 		return singleMatch
-	} 
+	}
 
 	return matches
 }
 
+// autoCompleteFiles looks for files in the working directory whose names start
+// the provided input string. Returns either a list of full matches
+// or a single entry containing only the suffix to append if only
+// one match is found.
 func autoCompleteFiles(input string) [][]byte {
+
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting current working directory: %v", err)
@@ -121,16 +133,17 @@ func autoCompleteFiles(input string) [][]byte {
 }
 
 func checkLongestCommonPrefix(matches []string) string {
-	if len(matches) <= 0 {
+	// Returns the longest common prefix of the provided strings.
+	if len(matches) == 0 {
 		return ""
 	}
+
 	prefix := matches[0]
 
 	for i := 0; i < len(prefix); i++ {
-		char := prefix[i]
-
+		b := prefix[i]
 		for j := 1; j < len(matches); j++ {
-			if i >= len(matches) || matches[j][i] != char {
+			if i >= len(matches[j]) || matches[j][i] != b {
 				return prefix[:i]
 			}
 		}
@@ -139,10 +152,10 @@ func checkLongestCommonPrefix(matches []string) string {
 }
 
 func buildMatches(rest [][]byte) []string {
-    matches := make([]string, 0, len(rest))
-    for _, b := range rest {
-        matches = append(matches, string(b))
-    }
-    sort.Strings(matches)
-    return matches
+	matches := make([]string, 0, len(rest))
+	for _, b := range rest {
+		matches = append(matches, string(b))
+	}
+	sort.Strings(matches)
+	return matches
 }

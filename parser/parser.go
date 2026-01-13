@@ -6,6 +6,16 @@ import (
 )
 
 func ParseInput(input string) []string {
+	// ParseInput splits a single command-line string into arguments while
+	// respecting quoting and escape rules. Supported behaviors:
+	//  - Double quotes (") allow backslash escaping of " and \\ inside.
+	//  - Single quotes (') take content literally except for an escaped backslash
+	//    sequence which is preserved as a literal backslash.
+	//  - Backslashes outside quotes escape the following rune.
+	//
+	// The function returns a slice of argument strings, or nil if the
+	// input is malformed (for example when a quote is not closed).
+	// This function operates on runes so it is safe for UTF-8 input.
 	var args []string
 	var current strings.Builder
 

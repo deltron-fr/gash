@@ -92,15 +92,6 @@ func handleCD(cmdName, redirection string, args ...string) {
 	}
 }
 
-// func isDirectory(path string) bool {
-// 	info, err := os.Stat(path)
-// 	if err != nil {
-// 		return false
-// 	}
-
-// 	return info.IsDir()
-// }
-
 func cdHomeDir() {
 	homePath := os.Getenv("HOME")
 	err := os.Chdir(homePath)

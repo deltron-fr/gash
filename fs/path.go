@@ -9,6 +9,11 @@ import (
 )
 
 func CheckPath(f *os.File, cmdName, cmdType string) bool {
+	// CheckPath searches directories in $PATH for `cmdName` and ensures
+	// it is present and executable. If `cmdType` is "type" the function
+	// will print the found path (optionally to `f`) and return true; if
+	// `cmdType` is "exec" the function simply returns true when an
+	// executable is found. Returns false when no suitable entry exists.
 	pathEnv := os.Getenv("PATH")
 	separator := string(os.PathListSeparator)
 
@@ -55,8 +60,7 @@ func isExecutable(path string) bool {
 	}
 
 	mode := info.Mode()
-	isExec := mode&0100 != 0
-	return isExec
+	return mode&0111 != 0
 }
 
 func checkPathType(f *os.File, name, path string) {

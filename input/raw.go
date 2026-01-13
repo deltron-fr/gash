@@ -11,6 +11,23 @@ import (
 )
 
 func RawModeHandler(currentBuffer string) (string, []string) {
+	// RawModeHandler enters the terminal's raw mode and reads user input
+	// byte-by-byte. It supports basic line editing (left/right/delete),
+	// tab completion, and returns once the user presses Enter.
+	//
+	// Parameters:
+	//   currentBuffer - an optional string that will be prefilled into
+	//                   the input buffer before reading further keys.
+	//
+	// Returns:
+	//   string - the full input line the user typed (without trailing newline)
+	//   []string - when tab completion listing is requested this slice
+	//              contains the matches to be printed by the caller.
+	//
+	// - This function is synchronous and blocks until a terminating key
+	//   (Enter) is pressed.
+	// - The function temporarily puts the TTY into raw mode and restores
+	//   the previous state on return.
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)

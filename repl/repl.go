@@ -10,13 +10,19 @@ import (
 )
 
 func StartRepl() {
+	// StartRepl runs the main read-eval-print loop. It prints a prompt,
+	// reads a line using the raw-mode input handler, runs tab-completion
+	// listing when requested, parses the input, checks for redirections,
+	// and sends the command to builtins or external commands.
+	//
+	// `exit` builtin will terminate this process.
 	var buffer string
 
 	for {
 		fmt.Print("$ ")
 
 		input, tabMatches := input.RawModeHandler(buffer)
-		
+
 		if len(tabMatches) > 0 {
 			for _, match := range tabMatches {
 				fmt.Fprintf(os.Stdout, "%s  ", match)
