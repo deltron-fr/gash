@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/term"
 	"github.com/deltron-fr/dshell/commands"
+	"golang.org/x/term"
 )
 
 func RawModeHandler(currentBuffer string, history []commands.History) (string, []string) {
@@ -19,8 +19,8 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 	// Parameters:
 	//   currentBuffer - an optional string that will be prefilled into
 	//                   the input buffer before reading further keys.
-	//	 history - contains the history of previous commands for up and 
-	//             down arrow navigation.			
+	//	 history - contains the history of previous commands for up and
+	//             down arrow navigation.
 	//
 	// Returns:
 	//   string - the full input line the user typed (without trailing newline)
@@ -104,7 +104,7 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 						fmt.Fprintf(os.Stdout, "\x1b[D")
 						cursorPos--
 					}
-					
+
 					historyTracker--
 					buffer = []byte{}
 					fmt.Print(history[historyTracker].Name)
@@ -125,7 +125,7 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 								cursorPos--
 							}
 							buffer = []byte{}
-						}				
+						}
 						continue
 					}
 

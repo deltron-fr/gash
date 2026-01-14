@@ -1,6 +1,6 @@
 package commands
 
-type commandFunc func(string, string, []History, ...string)
+type commandFunc func(string, string, *[]History, ...string)
 
 type builtInCommands struct {
 	Name        string
@@ -36,7 +36,7 @@ func Commands() map[string]builtInCommands {
 			Callback:    handleCD,
 		},
 		"history": {
-			Name: "history",
+			Name:        "history",
 			Description: "displays the history list",
 			Callback:    handleHistory,
 		},
