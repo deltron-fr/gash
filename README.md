@@ -37,7 +37,7 @@ go run ./...
   - Tab completion is implemented in `input/completion.go`.
   - Sources: builtins (`commands.Commands()`), current directory entries, and executables found on `$PATH` (`fs.CheckPath` is used to test executability).
   - Behavior: single-match returns the suffix to append; multiple matches can be listed; partial/ambiguous matches are handled via a longest-common-prefix helper.
-  - Note: multi-path completion for files (merging matches from different directories) is not implemented — the code currently enumerates `$PATH` entries and local files separately.
+  - Note: multi-path completion for files (merging matches from different directories) is not implemented. The code currently enumerates `$PATH` entries and local files separately.
 
 - History
   - In-memory history and persistence live in `commands/history.go`. There is a `history` builtin to list and read/write/append a history file; `repl` loads the history file on startup.
