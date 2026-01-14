@@ -5,6 +5,8 @@ A minimal Unix-like shell implemented from scratch to explore parsing, terminal 
 ### Goal
 This project is an exploration of Unix shell internals. Rather than relying on high-level abstractions, core features such as line editing, tab completion, and command parsing are implemented from scratch. The goal is to move past library-managed behavior and gain an understanding of how a REPL interacts with terminal raw mode, process execution and file descriptor-based I/O.
 
+---
+
 ## Running locally
 - Build / run:
 
@@ -12,6 +14,8 @@ This project is an exploration of Unix shell internals. Rather than relying on h
 # run the shell directly
 go run ./...
 ```
+
+---
 
 ## Core architecture
 - REPL
@@ -38,6 +42,7 @@ go run ./...
 - History
   - In-memory history and persistence live in `commands/history.go`. There is a `history` builtin to list and read/write/append a history file; `repl` loads the history file on startup.
 
+---
 
 ## Technical deep dive
 This section briefly explains the important technical decisions and known limitations.
@@ -63,6 +68,7 @@ This section briefly explains the important technical decisions and known limita
 #### Known Bugs
 - Backspace when cursor is not at end-of-line: deleting a character in the middle of the buffer can leave a visual space or otherwise corrupt the display; this is a bug to be fixed.
 
+---
 
 ## Features
 | Category | Feature | Notes |
@@ -74,6 +80,8 @@ This section briefly explains the important technical decisions and known limita
 | System | Stdout/Stderr redirection, append | Redirections handled in `commands/exec.go`; appending supported. |
 | Builtins | `cd`, `history`, `exit`, `echo`, `type`, `pwd` | Implemented in `commands/*.go`. |
 | Coming soon | Pipe support, job control, multiline editing | Listed in roadmap. |
+
+---
 
 ## Roadmap / Next steps
 - Implement piping between processes (|) and proper file descriptor wiring.
