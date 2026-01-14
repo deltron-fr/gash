@@ -83,7 +83,7 @@ This section briefly explains the important technical decisions and known limita
 
 ---
 
-## Roadmap / Next steps
+## Roadmap
 - Implement piping between processes (|) and proper file descriptor wiring.
 - Support multiline commands and robust cursor navigation for wrapped lines.
 - Add job control (background jobs).
