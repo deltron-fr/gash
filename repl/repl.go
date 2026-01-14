@@ -19,6 +19,9 @@ func StartRepl() {
 	var buffer string
 	inputHistory := make([]commands.History, 0, 400)
 
+	var HistFile = os.Getenv("HISTFILE")
+	commands.LoadHistoryToMemory(HistFile, &inputHistory)
+
 	for {
 		fmt.Print("$ ")
 

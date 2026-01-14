@@ -44,3 +44,26 @@ func Commands() map[string]builtInCommands {
 
 	return commands
 }
+
+type historyOptions struct {
+	Name        string
+	Description string
+}
+
+func historyArgs() map[string]historyOptions {
+	options := map[string]historyOptions{
+		"-r": {
+			Name:        "-r",
+			Description: "read the history file and append the contents to the history list",
+		},
+		"-w": {
+			Name:        "-w",
+			Description: "write the current history to the history file",
+		},
+		"-a": {
+			Name:        "-a",
+			Description: "append history lines from this session to the history file",
+		},
+	}
+	return options
+}

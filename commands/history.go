@@ -2,15 +2,17 @@ package commands
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 )
 
 type History struct {
-	Counter int
-	Name    string
-	InFile  bool
+	Counter   int
+	Name      string
+	InFile    bool
+	InFileArg bool
 }
 
 func AddEntry(cmd string, history []History) *History {
@@ -20,6 +22,10 @@ func AddEntry(cmd string, history []History) *History {
 	}
 }
 
+// handleHistory implements the `history` builtin. Without args it
+// prints the full list. With a single numeric arg it prints the last
+// N entries.n  With two args it accepts an option(-r, -w, -a) and a
+// filename to read/write/append the history file.
 func handleHistory(cmdName, redirection string, inputHistory *[]History, args ...string) {
 	h := *inputHistory
 	if len(h) <= 0 {
@@ -65,9 +71,9 @@ func handleHistory(cmdName, redirection string, inputHistory *[]History, args ..
 
 				for _, line := range entries {
 					*inputHistory = append(*inputHistory, History{
-						Name:    line,
-						Counter: len(*inputHistory) + 1,
-						InFile:  true,
+						Name:      line,
+						Counter:   len(*inputHistory) + 1,
+						InFileArg: true,
 					},
 					)
 				}
@@ -86,30 +92,9 @@ func handleHistory(cmdName, redirection string, inputHistory *[]History, args ..
 	}
 }
 
-type HistoryOptions struct {
-	Name        string
-	Description string
-}
-
-func historyArgs() map[string]HistoryOptions {
-	options := map[string]HistoryOptions{
-		"-r": {
-			Name:        "-r",
-			Description: "read the history file and append the contents to the history list",
-		},
-		"-w": {
-			Name:        "-w",
-			Description: "write the current history to the history file",
-		},
-		"-a": {
-			Name:        "-a",
-			Description: "append history lines from this session to the history file",
-		},
-	}
-	return options
-}
-
 func readHistoryFromFile(path string) []string {
+	// readHistoryFromFile returns non-empty lines from the provided
+	// file path or nil on error.
 	f, err := os.Open(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "history: %s: No such file or directory\n", path)
@@ -147,7 +132,7 @@ func writeHistoryToFile(path string, inputHistory *[]History) error {
 	w := bufio.NewWriter(f)
 	for i := 0; i < len(h); i++ {
 		fmt.Fprintf(w, "%s\n", h[i].Name)
-		h[i].InFile = true
+		h[i].InFileArg = true
 	}
 
 	err = w.Flush()
@@ -160,6 +145,8 @@ func writeHistoryToFile(path string, inputHistory *[]History) error {
 }
 
 func appendHistoryToFile(path string, inputHistory *[]History) error {
+	// appendHistoryToFile appends any in-memory entries that are not
+	// already saved (InFileArg == false) to `path`.
 
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -171,9 +158,9 @@ func appendHistoryToFile(path string, inputHistory *[]History) error {
 	h := *inputHistory
 	w := bufio.NewWriter(f)
 	for i := 0; i < len(h); i++ {
-		if !h[i].InFile {
+		if !h[i].InFileArg {
 			fmt.Fprintf(w, "%s\n", h[i].Name)
-			h[i].InFile = true
+			h[i].InFileArg = true
 		}
 	}
 
@@ -185,4 +172,36 @@ func appendHistoryToFile(path string, inputHistory *[]History) error {
 
 	return nil
 
+}
+
+func LoadHistoryToMemory(path string, history *[]History) {
+	// LoadHistoryToMemory reads `path` and appends its non-empty
+	// lines to the provided history slice.
+
+	f, err := os.Open(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return
+		}
+
+		fmt.Fprintf(os.Stderr, "history: could not read %s: %v\n", path, err)
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line != "" {
+			*history = append(*history, History{
+				Name:    line,
+				Counter: len(*history) + 1,
+				InFile:  true,
+			})
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "error reading history: %v\n", err)
+	}
 }
