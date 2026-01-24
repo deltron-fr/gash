@@ -9,7 +9,7 @@ import (
 	"github.com/deltron-fr/dshell/fs"
 )
 
-func HandleExec(cmd, redirection string, args ...string) {
+func HandleExec(cmd, redirection string, pipeArgs []int, args ...string) {
 	// HandleExec runs an external program when the given command
 	// is not a shell builtin. It supports optional redirection of
 	// stdout/stderr by opening the destination file and wiring the
@@ -23,6 +23,54 @@ func HandleExec(cmd, redirection string, args ...string) {
 		commandExec(os.Stdout, os.Stderr, cmd, args...)
 		return
 	}
+
+	if len(pipeArgs) > 0 {
+		r, w, err := os.Pipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		isExec := fs.CheckPath(nil, cmd, "exec")
+		if !isExec {
+			fmt.Printf("%s: command not found\n", cmd)
+			return
+		}
+
+		idx := pipeArgs[0]
+		c := exec.Command(cmd, args[:idx]...)
+		c.Stdout = w
+		c.Stdin = os.Stdin
+		c.Stderr = os.Stderr
+		err = c.Start()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		w.Close()
+
+		go func() {
+			err = c.Wait()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+		}()
+
+		cNew := exec.Command(args[idx+1], args[idx+2:]...)
+		cNew.Stdin = r
+		cNew.Stdout = os.Stdout
+		cNew.Stderr = os.Stderr
+
+		err = cNew.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		return
+	}
+
 
 	filepath := args[len(args)-1]
 	args = args[:len(args)-2]

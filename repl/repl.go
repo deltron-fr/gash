@@ -57,6 +57,13 @@ func StartRepl() {
 			extraArgs = args[1:]
 		}
 
+		pipeArgs := make([]int, 0)
+		for i, arg := range extraArgs {
+			if arg == "|" {
+				pipeArgs = append(pipeArgs, i)
+			}
+		}
+
 		invalid := false
 		var redCmd parser.RedirectionCommands
 
@@ -86,7 +93,7 @@ func StartRepl() {
 		if command, exists := builtinCmds[cmd]; exists {
 			command.Callback(command.Name, redCmd.Name, &inputHistory, extraArgs...)
 		} else {
-			commands.HandleExec(cmd, redCmd.Name, extraArgs...)
+			commands.HandleExec(cmd, redCmd.Name, pipeArgs, extraArgs...)
 		}
 	}
 }
