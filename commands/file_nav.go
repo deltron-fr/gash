@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func handlePWD(cmdName, redirection string, inputHistory *[]History, args ...string) {
+func handlePWD(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
 	path, err := os.Getwd()
 	if redirection == "" {
 		if err != nil {
@@ -67,7 +67,7 @@ func handlePWD(cmdName, redirection string, inputHistory *[]History, args ...str
 	}
 }
 
-func handleCD(cmdName, redirection string, inputHistory *[]History, args ...string) {
+func handleCD(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
 	if len(args) > 1 {
 		fmt.Println("too many arguments")
 		return

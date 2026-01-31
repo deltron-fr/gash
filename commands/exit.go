@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func handleExit(cmdName, redirection string, inputHistory *[]History, args ...string) {
+func handleExit(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
 	histFile := os.Getenv("HISTFILE")
 	loadMemoryToHistFile(histFile, inputHistory)
 

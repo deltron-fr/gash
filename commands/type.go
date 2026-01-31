@@ -3,14 +3,20 @@ package commands
 import (
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/deltron-fr/dshell/fs"
 )
 
-func handleType(cmdName, redirection string, inputHistory *[]History, args ...string) {
+func handleType(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
 	availableCmds := Commands()
 
-	if redirection == "" {
+
+	if len(args) == 0 {
+		return
+	}
+
+	if redirection == "" && len(pipeArgs) == 0 {
 		for _, arg := range args {
 			_, exists := availableCmds[arg]
 			if exists {
@@ -19,6 +25,57 @@ func handleType(cmdName, redirection string, inputHistory *[]History, args ...st
 				fs.CheckPath(nil, arg, "type")
 			}
 		}
+		return
+	}
+
+	if len(pipeArgs) > 0 {
+		r, w, err := os.Pipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		isExec := fs.CheckPath(nil, cmdName, "exec")
+		if !isExec {
+			fmt.Printf("%s: command not found\n", cmdName)
+			return
+		}
+
+		idx := pipeArgs[0]
+		for _, arg := range args {
+			_, exists := availableCmds[arg]
+			if exists {
+				fmt.Fprintf(w, "%s is a shell builtin\n", arg)
+			} else {
+				fs.CheckPath(nil, arg, "type")
+			}
+		}
+		w.Close()
+
+		commands := Commands()
+		if v, ok := commands[args[idx+1]]; ok {
+			var cmdArgs []string
+			if idx + 2 > len(args) {
+				cmdArgs = []string{}
+			} else {
+				cmdArgs = args[idx+2:]
+			}
+
+			v.Callback(args[idx+1], "", nil, nil, cmdArgs...)
+			return
+		}
+
+		cNew := exec.Command(args[idx+1], args[idx+2:]...)
+		cNew.Stdin = r
+		cNew.Stdout = os.Stdout
+		cNew.Stderr = os.Stderr
+
+		err = cNew.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
 		return
 	}
 

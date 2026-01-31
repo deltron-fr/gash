@@ -4,14 +4,61 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/deltron-fr/dshell/fs"
 )
 
-func handleEcho(cmdName, redirection string, inputHistory *[]History, args ...string) {
-	if redirection == "" {
+func handleEcho(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
+	if len(args) == 0 {
+		return
+	}
+	
+	if redirection == "" && len(pipeArgs) == 0 {
 		for _, w := range args {
 			fmt.Printf("%s ", w)
 		}
 		fmt.Println()
+		return
+	}
+
+	if len(pipeArgs) > 0 {
+		r, w, err := os.Pipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		isExec := fs.CheckPath(nil, cmdName, "exec")
+		if !isExec {
+			fmt.Printf("%s: command not found\n", cmdName)
+			return
+		}
+
+		idx := pipeArgs[0]
+		buf := bufio.NewWriter(w)
+		fmt.Fprint(buf, strings.Join(args[:idx], " "))
+		fmt.Fprint(buf, "\n")
+
+		if err := buf.Flush(); err != nil {
+   	 		fmt.Fprintln(os.Stderr, err)
+    		return
+		}
+		
+		w.Close()
+
+		cNew := exec.Command(args[idx+1], args[idx+2:]...)
+		cNew.Stdin = r
+		cNew.Stdout = os.Stdout
+		cNew.Stderr = os.Stderr
+
+		err = cNew.Run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
 		return
 	}
 

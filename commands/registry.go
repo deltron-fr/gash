@@ -1,6 +1,6 @@
 package commands
 
-type commandFunc func(string, string, *[]History, ...string)
+type commandFunc func(string, string, []int, *[]History, ...string)
 
 type builtInCommands struct {
 	Name        string

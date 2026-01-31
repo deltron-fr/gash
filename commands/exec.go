@@ -14,7 +14,7 @@ func HandleExec(cmd, redirection string, pipeArgs []int, args ...string) {
 	// is not a shell builtin. It supports optional redirection of
 	// stdout/stderr by opening the destination file and wiring the
 	// command's output streams accordingly.
-	if redirection == "" {
+	if redirection == "" && len(pipeArgs) == 0 {
 		isExec := fs.CheckPath(nil, cmd, "exec")
 		if !isExec {
 			fmt.Printf("%s: command not found\n", cmd)
@@ -56,6 +56,19 @@ func HandleExec(cmd, redirection string, pipeArgs []int, args ...string) {
 				return
 			}
 		}()
+
+		commands := Commands()
+		if v, ok := commands[args[idx+1]]; ok {
+			var cmdArgs []string
+			if idx + 2 > len(args) {
+				cmdArgs = []string{}
+			} else {
+				cmdArgs = args[idx+2:]
+			}
+
+			v.Callback(args[idx+1], "",  nil, nil, cmdArgs...)
+			return
+		}
 
 		cNew := exec.Command(args[idx+1], args[idx+2:]...)
 		cNew.Stdin = r

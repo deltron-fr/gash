@@ -26,7 +26,7 @@ func AddEntry(cmd string, history []History) *History {
 // prints the full list. With a single numeric arg it prints the last
 // N entries.n  With two args it accepts an option(-r, -w, -a) and a
 // filename to read/write/append the history file.
-func handleHistory(cmdName, redirection string, inputHistory *[]History, args ...string) {
+func handleHistory(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
 	h := *inputHistory
 	if len(h) <= 0 {
 		return

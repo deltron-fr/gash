@@ -91,7 +91,7 @@ func StartRepl() {
 		builtinCmds := commands.Commands()
 
 		if command, exists := builtinCmds[cmd]; exists {
-			command.Callback(command.Name, redCmd.Name, &inputHistory, extraArgs...)
+			command.Callback(command.Name, redCmd.Name, pipeArgs, &inputHistory, extraArgs...)
 		} else {
 			commands.HandleExec(cmd, redCmd.Name, pipeArgs, extraArgs...)
 		}
