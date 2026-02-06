@@ -17,17 +17,15 @@ func StartRepl() {
 	//
 	// `exit` builtin will terminate this process.
 	var buffer string
-	inputHistory := make([]commands.History, 0, 400)
-
 	var HistFile = os.Getenv("HISTFILE")
-	commands.LoadHistoryToMemory(HistFile, &inputHistory)
 
 	sh := commands.NewShell()
+	sh.LoadHistoryToMemory(HistFile)
 
 	for {
 		fmt.Print("$ ")
 
-		input, tabMatches := input.RawModeHandler(buffer, inputHistory)
+		input, tabMatches := input.RawModeHandler(buffer, sh.History)
 
 		if len(tabMatches) > 0 {
 			for _, match := range tabMatches {
@@ -44,8 +42,8 @@ func StartRepl() {
 			continue
 		}
 
-		h := commands.AddEntry(input, inputHistory)
-		inputHistory = append(inputHistory, *h)
+		h := commands.AddEntry(input, sh.History)
+		sh.History = append(sh.History, *h)
 
 		args := parser.ParseInput(input)
 		if args == nil {

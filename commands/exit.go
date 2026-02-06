@@ -9,13 +9,13 @@ import (
 
 func (sh *Shell) Exit(cmd *Command) error {
 	histFile := os.Getenv("HISTFILE")
-	loadMemoryToHistFile(histFile, sh.History)
+	sh.loadMemoryToHistFile(histFile)
 
 	os.Exit(0)
 	return nil
 }
 
-func loadMemoryToHistFile(path string, inputHistory *[]History) {
+func (sh *Shell) loadMemoryToHistFile(path string) {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -28,7 +28,7 @@ func loadMemoryToHistFile(path string, inputHistory *[]History) {
 	defer f.Close()
 
 	w := bufio.NewWriter(f)
-	h := *inputHistory
+	h := sh.History
 	for i := 0; i < len(h); i++ {
 		if !h[i].InFile {
 			fmt.Fprintf(w, "%s\n", h[i].Name)

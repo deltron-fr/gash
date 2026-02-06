@@ -29,7 +29,7 @@ var ErrInvalidOptions = fmt.Errorf("invalid option")
 // N entries.n  With two args it accepts an option(-r, -w, -a) and a
 // filename to read/write/append the history file.
 func (sh *Shell) HistoryCmd(cmd *Command) error {
-	h := *sh.History
+	h := sh.History
 	if len(h) <= 0 {
 		return nil
 	}
@@ -77,20 +77,20 @@ func (sh *Shell) HistoryCmd(cmd *Command) error {
 				}
 
 				for _, line := range entries {
-					*sh.History = append(*sh.History, History{
+					sh.History = append(sh.History, History{
 						Name:      line,
-						Counter:   len(*sh.History) + 1,
+						Counter:   len(sh.History) + 1,
 						InFileArg: true,
 					},
 					)
 				}
 			case "-w":
-				err := writeHistoryToFile(cmd.Args[1], sh.History)
+				err := sh.writeHistoryToFile(cmd.Args[1])
 				if err != nil {
 					return err
 				}
 			case "-a":
-				err := appendHistoryToFile(cmd.Args[1], sh.History)
+				err := sh.appendHistoryToFile(cmd.Args[1])
 				if err != nil {
 					return err
 				}
@@ -128,7 +128,7 @@ func readHistoryFromFile(path string) []string {
 	return history
 }
 
-func writeHistoryToFile(path string, inputHistory *[]History) error {
+func (sh *Shell) writeHistoryToFile(path string) error {
 
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -137,7 +137,7 @@ func writeHistoryToFile(path string, inputHistory *[]History) error {
 	}
 	defer f.Close()
 
-	h := *inputHistory
+	h := sh.History
 	w := bufio.NewWriter(f)
 	for i := 0; i < len(h); i++ {
 		fmt.Fprintf(w, "%s\n", h[i].Name)
@@ -153,7 +153,7 @@ func writeHistoryToFile(path string, inputHistory *[]History) error {
 	return nil
 }
 
-func appendHistoryToFile(path string, inputHistory *[]History) error {
+func (sh *Shell) appendHistoryToFile(path string) error {
 	// appendHistoryToFile appends any in-memory entries that are not
 	// already saved (InFileArg == false) to `path`.
 
@@ -164,7 +164,7 @@ func appendHistoryToFile(path string, inputHistory *[]History) error {
 	}
 	defer f.Close()
 
-	h := *inputHistory
+	h := sh.History
 	w := bufio.NewWriter(f)
 	for i := 0; i < len(h); i++ {
 		if !h[i].InFileArg {
@@ -183,7 +183,7 @@ func appendHistoryToFile(path string, inputHistory *[]History) error {
 
 }
 
-func LoadHistoryToMemory(path string, history *[]History) {
+func (sh *Shell) LoadHistoryToMemory(path string) {
 	// LoadHistoryToMemory reads `path` and appends its non-empty
 	// lines to the provided history slice.
 
@@ -202,9 +202,9 @@ func LoadHistoryToMemory(path string, history *[]History) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line != "" {
-			*history = append(*history, History{
+			sh.History = append(sh.History, History{
 				Name:    line,
-				Counter: len(*history) + 1,
+				Counter: len(sh.History) + 1,
 				InFile:  true,
 			})
 		}

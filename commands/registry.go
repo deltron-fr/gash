@@ -25,7 +25,7 @@ func NewPipeline() *Pipeline {
 
 type Shell struct {
 	BuiltIn map[string]CommandFunc
-	History *[]History
+	History []History
 }
 
 func (sh *Shell) Executor(p *Pipeline) {
@@ -61,6 +61,7 @@ type CommandFunc func(sh *Shell, cmd *Command) error
 func NewShell() *Shell {
 	sh := &Shell{
 		BuiltIn: make(map[string]CommandFunc),
+		History: make([]History, 0, 100),
 	}
 
 	sh.BuiltIn["echo"] = (*Shell).Echo
