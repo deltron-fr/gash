@@ -79,7 +79,7 @@ This section briefly explains the important technical decisions and known limita
 | Raw Mode | Terminal raw input + custom readline | Byte-level control for keys and editing. No multiline navigation yet. |
 | Logic | Multi-level quoting, basic escape rules | See `parser/parser.go` for exact rules. |
 | System | Stdout/Stderr redirection, append | Redirections handled in `commands/exec.go`; appending supported. |
-| System | Pipelining (`|`) | Pipelines are wired in `commands.Executor` and run concurrently. |
+| System | Pipelining | Pipelines are wired in `commands.Executor` and run concurrently. |
 | Builtins | `cd`, `history`, `exit`, `echo`, `type`, `pwd` | Implemented in `commands/*.go`. |
 | Coming soon | Job control, multiline editing | Listed in roadmap. |
 
