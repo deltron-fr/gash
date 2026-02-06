@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// Command represents one executable unit with IO attached.
 type Command struct {
 	Name   string
 	Args   []string
@@ -13,6 +14,7 @@ type Command struct {
 	Stderr io.Writer
 }
 
+// Pipeline is an ordered list of commands connected by pipes.
 type Pipeline struct {
 	Commands []Command
 }
@@ -23,11 +25,13 @@ func NewPipeline() *Pipeline {
 	}
 }
 
+// Shell holds builtin handlers and session state.
 type Shell struct {
 	BuiltIn map[string]CommandFunc
 	History []History
 }
 
+// Executor wires pipelines and runs each command concurrently.
 func (sh *Shell) Executor(p *Pipeline) {
 	for i := 0; i < len(p.Commands)-1; i++ {
 		r, w := io.Pipe()
@@ -47,6 +51,10 @@ func (sh *Shell) Executor(p *Pipeline) {
 				sh.handleExec(c)
 			}
 
+			if r, ok := c.Stdin.(*io.PipeReader); ok {
+				r.Close()
+			}
+
 			if w, ok := c.Stdout.(*io.PipeWriter); ok {
 				w.Close()
 			}
@@ -56,8 +64,10 @@ func (sh *Shell) Executor(p *Pipeline) {
 }
 
 
+// CommandFunc is the signature for builtins.
 type CommandFunc func(sh *Shell, cmd *Command) error
 
+// NewShell creates a shell with builtin commands registered.
 func NewShell() *Shell {
 	sh := &Shell{
 		BuiltIn: make(map[string]CommandFunc),
@@ -73,6 +83,7 @@ func NewShell() *Shell {
 	return sh
 }
 
+// BuiltInCommands documents builtin metadata for help output.
 type BuiltInCommands struct {
 	Name        string
 	Description string

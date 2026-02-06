@@ -12,7 +12,7 @@ import (
 var ErrNotExec = fmt.Errorf("the provided file is not executable")
 
 func (sh *Shell) handleExec(cmd *Command) error {
-	// HandleExec runs an external program when the given command
+	// handleExec runs an external program when the given command
 	// is not a shell builtin. It supports optional redirection of
 	// stdout/stderr by opening the destination file and wiring the
 	// command's output streams accordingly.

@@ -8,6 +8,7 @@ import (
 	"strconv"
 )
 
+// History stores one command entry plus bookkeeping for file persistence.
 type History struct {
 	Counter   int
 	Name      string
@@ -15,6 +16,7 @@ type History struct {
 	InFileArg bool
 }
 
+// AddEntry builds a new history record with the next counter value.
 func AddEntry(cmd string, history []History) *History {
 	return &History{
 		Counter: len(history) + 1,
@@ -24,10 +26,11 @@ func AddEntry(cmd string, history []History) *History {
 
 var ErrInvalidOptions = fmt.Errorf("invalid option")
 
-// handleHistory implements the `history` builtin. Without args it
-// prints the full list. With a single numeric arg it prints the last
-// N entries.n  With two args it accepts an option(-r, -w, -a) and a
-// filename to read/write/append the history file.
+// HistoryCmd implements the `history` builtin.
+// With no args it prints all entries.
+// With a single numeric arg it prints the last N entries.
+// With two args it accepts an option (-r, -w, -a) and a filename to
+// read, write, or append the history file.
 func (sh *Shell) HistoryCmd(cmd *Command) error {
 	h := sh.History
 	if len(h) <= 0 {

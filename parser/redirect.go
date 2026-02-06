@@ -6,18 +6,22 @@ import (
 	"github.com/deltron-fr/dshell/commands"
 )
 
+// Redirector is a redirection operator token (e.g. ">", "2>>").
 type Redirector string
 
+// Redirect describes a single redirection operator and its target path.
 type Redirect struct {
 	Operator Redirector
 	Target   string
 }
 
+// RedirectionCommands documents supported redirection operators.
 type RedirectionCommands struct {
 	Name        string
 	Description string
 }
 
+// Redirection returns the supported redirection operators.
 func Redirection() map[string]RedirectionCommands {
 	commands := map[string]RedirectionCommands{
 		">": {
@@ -49,6 +53,7 @@ func Redirection() map[string]RedirectionCommands {
 
 }
 
+// Apply opens the target file and attaches it to the command's IO.
 func (r *Redirect) Apply(cmd *commands.Command) (*os.File, error) {
 	var file *os.File
 	var err error

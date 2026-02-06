@@ -23,7 +23,8 @@ go run ./...
 - Lexer / Parser
   - `parser.ParseInput` implements tokenization with support for single and double quotes and escape sequences. It returns nil on malformed input (eg. incomplete escapes/quotes).
 - Execution
-  - External commands are found via `fs.CheckPath` and executed in `commands.commandExec` / `commands.HandleExec`, with optional stdout/stderr redirection.
+  - External commands are found via `fs.CheckPath` and executed in `commands.commandExec` / `commands.handleExec`, with optional stdout/stderr redirection.
+  - Pipelines are wired in `commands.Executor`, which connects command stdout/stdin using pipes and runs pipeline stages concurrently.
 
 
 ### Supporting subsystems
@@ -31,7 +32,7 @@ go run ./...
   - Raw-mode input and a small, custom readline implementation are in `input/raw.go`. Arrow key handling is in `input/keys.go`.
 
 - Redirections
-  - Recognized redirection tokens are provided by `parser/redirect.go`. The REPL checks for redirection usage and `commands.HandleExec` wires output to files accordingly.
+  - Recognized redirection tokens are provided by `parser/redirect.go`. The REPL detects redirection usage and applies file redirection on each command before execution.
 
 - Completions
   - Tab completion is implemented in `input/completion.go`.
@@ -63,7 +64,7 @@ This section briefly explains the important technical decisions and known limita
 
 #### Known limitations
 - Multiline editing: the current readline doesn't support multiline cursor navigation. Lines that wrap or explicit multiline input are not fully supported.
-- Pipelining / job control: piping between processes and job control (background/foreground jobs) are not implemented yet.
+- Job control: background/foreground jobs are not implemented yet.
 
 #### Known Bugs
 - Backspace when cursor is not at end-of-line: deleting a character in the middle of the buffer can leave a visual space or otherwise corrupt the display; this is a bug to be fixed.
@@ -78,15 +79,14 @@ This section briefly explains the important technical decisions and known limita
 | Raw Mode | Terminal raw input + custom readline | Byte-level control for keys and editing. No multiline navigation yet. |
 | Logic | Multi-level quoting, basic escape rules | See `parser/parser.go` for exact rules. |
 | System | Stdout/Stderr redirection, append | Redirections handled in `commands/exec.go`; appending supported. |
+| System | Pipelining (`|`) | Pipelines are wired in `commands.Executor` and run concurrently. |
 | Builtins | `cd`, `history`, `exit`, `echo`, `type`, `pwd` | Implemented in `commands/*.go`. |
-| Coming soon | Pipe support, job control, multiline editing | Listed in roadmap. |
+| Coming soon | Job control, multiline editing | Listed in roadmap. |
 
 ---
 
 ## Roadmap
-- Implement piping between processes (|) and proper file descriptor wiring.
 - Support multiline commands and robust cursor navigation for wrapped lines.
 - Add job control (background jobs).
 - Improve completion to merge and deduplicate entries found across multiple `$PATH` directories when completing executables.
 - Add more tests: unit tests for `parser.ParseInput` and completion helpers.
-

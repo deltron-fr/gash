@@ -59,6 +59,8 @@ func StartRepl() {
 }
 
 
+// ParsePipeline builds a pipeline from parsed args and applies any redirections.
+// It returns the pipeline plus the last redirection file opened (if any).
 func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
 	pipeline := commands.NewPipeline()
 	isFirstArg := true
@@ -114,6 +116,7 @@ func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
 }
 
 
+// isRedirection reports whether a token is a supported redirection operator.
 func isRedirection(token string) bool {
 	redirectionOperators := parser.Redirection()
 	if _, ok := redirectionOperators[token]; !ok {
