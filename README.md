@@ -1,4 +1,4 @@
-# dhsell (dsh)
+# dshell (dsh)
 
 A minimal Unix-like shell implemented from scratch to explore parsing, terminal control, process execution, and command I/O. This repository is a systems-learning project rather than a replacement for existing shells. It focuses on the pieces developers need to understand to build a working command interpreter.
 
