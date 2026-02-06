@@ -5,91 +5,44 @@ import (
 	"os"
 )
 
-func handlePWD(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
+var ErrTooManyArguments = fmt.Errorf("too many arguments")
+
+func (sh *Shell) Pwd(cmd *Command) error {
 	path, err := os.Getwd()
-	if redirection == "" {
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "unable to get the current working directory")
-			return
-		}
-		fmt.Println(path)
-		return
+	if err != nil {
+		_, err = fmt.Fprint(cmd.Stderr, err)
+		return err
 	}
 
-	filepath := args[len(args)-1]
-
-	switch redirection {
-	case ">", "1>":
-		file, err := os.Create(filepath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer file.Close()
-
-		fmt.Fprintln(file, path)
-
-	case "2>":
-		file, err := os.Create(filepath)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer file.Close()
-
-		_, err = fmt.Println(path)
-		if err != nil {
-			fmt.Fprintln(file, err)
-		}
-
-	case ">>", "1>>":
-		file, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		defer file.Close()
-
-		fmt.Fprintln(file, path)
-
-	case "2>>":
-		file, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		defer file.Close()
-
-		_, err = fmt.Println(path)
-		if err != nil {
-			fmt.Fprintln(file, err)
-		}
-	}
+	fmt.Fprintln(cmd.Stdout, path)
+	return nil
 }
 
-func handleCD(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
-	if len(args) > 1 {
-		fmt.Println("too many arguments")
-		return
+func (sh *Shell) Cd(cmd *Command) error {
+	if len(cmd.Args) > 1 {
+		fmt.Fprint(cmd.Stderr, "too many arguments")
+		return ErrTooManyArguments
 	}
 
-	filePath := args[0]
+	filePath := cmd.Args[0]
 
 	if filePath == "~" {
 		cdHomeDir()
-		return
+		return nil
 	}
 
 	err := os.Chdir(filePath)
 	if os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "cd: %s: No such file or directory\n", filePath)
-		return
+		return err
 	}
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		return err
 	}
+
+	return nil
 }
 
 func cdHomeDir() {

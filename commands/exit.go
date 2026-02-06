@@ -7,11 +7,12 @@ import (
 	"os"
 )
 
-func handleExit(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
+func (sh *Shell) Exit(cmd *Command) error {
 	histFile := os.Getenv("HISTFILE")
-	loadMemoryToHistFile(histFile, inputHistory)
+	loadMemoryToHistFile(histFile, sh.History)
 
 	os.Exit(0)
+	return nil
 }
 
 func loadMemoryToHistFile(path string, inputHistory *[]History) {

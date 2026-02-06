@@ -22,74 +22,83 @@ func AddEntry(cmd string, history []History) *History {
 	}
 }
 
+var ErrInvalidOptions = fmt.Errorf("invalid option")
+
 // handleHistory implements the `history` builtin. Without args it
 // prints the full list. With a single numeric arg it prints the last
 // N entries.n  With two args it accepts an option(-r, -w, -a) and a
 // filename to read/write/append the history file.
-func handleHistory(cmdName, redirection string, pipeArgs []int, inputHistory *[]History, args ...string) {
-	h := *inputHistory
+func (sh *Shell) HistoryCmd(cmd *Command) error {
+	h := *sh.History
 	if len(h) <= 0 {
-		return
+		return nil
 	}
 
-	if len(args) <= 0 {
+	switch len(cmd.Args) {
+	case 0:
 		for i := 0; i < len(h); i++ {
-			fmt.Printf("    %d  %s\n", h[i].Counter, h[i].Name)
+			_, err := fmt.Fprintf(cmd.Stdout, "    %d  %s\n", h[i].Counter, h[i].Name)
+			if err != nil {
+				fmt.Fprint(cmd.Stderr, err)
+				return err
+			}
 		}
-		return
-	}
-
-	if len(args) == 1 {
-		n, err := strconv.Atoi(args[0])
+		return nil
+	case 1:
+		n, err := strconv.Atoi(cmd.Args[0])
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+			fmt.Fprintln(cmd.Stderr, err)
+			return err
 		}
 
 		if n > len(h) {
-			return
+			return nil
 		}
 
 		newSlice := h[len(h)-n:]
 		for i := 0; i < len(newSlice); i++ {
-			fmt.Printf("    %d  %s\n", newSlice[i].Counter, newSlice[i].Name)
+			_, err = fmt.Fprintf(cmd.Stdout, "    %d  %s\n", newSlice[i].Counter, newSlice[i].Name)
+			if err != nil {
+				fmt.Fprint(cmd.Stderr, err)
+				return err
+			}
 		}
-	}
-
-	if len(args) == 2 {
+	case 2:
 		options := historyArgs()
-		if opt, exists := options[args[0]]; !exists {
-			fmt.Fprintf(os.Stderr, "%s: invalid option\n", args[0])
-			return
+		if opt, exists := options[cmd.Args[0]]; !exists {
+			fmt.Fprintf(cmd.Stderr, "%s: invalid option\n", cmd.Args[0])
+			return ErrInvalidOptions
 		} else {
 			switch opt.Name {
 			case "-r":
-				entries := readHistoryFromFile(args[1])
+				entries := readHistoryFromFile(cmd.Args[1])
 				if entries == nil {
-					return
+					return nil
 				}
 
 				for _, line := range entries {
-					*inputHistory = append(*inputHistory, History{
+					*sh.History = append(*sh.History, History{
 						Name:      line,
-						Counter:   len(*inputHistory) + 1,
+						Counter:   len(*sh.History) + 1,
 						InFileArg: true,
 					},
 					)
 				}
 			case "-w":
-				err := writeHistoryToFile(args[1], inputHistory)
+				err := writeHistoryToFile(cmd.Args[1], sh.History)
 				if err != nil {
-					return
+					return err
 				}
 			case "-a":
-				err := appendHistoryToFile(args[1], inputHistory)
+				err := appendHistoryToFile(cmd.Args[1], sh.History)
 				if err != nil {
-					return
+					return err
 				}
 			}
 		}
 	}
+
+	return nil
 }
 
 func readHistoryFromFile(path string) []string {

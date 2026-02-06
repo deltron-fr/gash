@@ -22,6 +22,8 @@ func StartRepl() {
 	var HistFile = os.Getenv("HISTFILE")
 	commands.LoadHistoryToMemory(HistFile, &inputHistory)
 
+	sh := commands.NewShell()
+
 	for {
 		fmt.Print("$ ")
 
@@ -45,55 +47,80 @@ func StartRepl() {
 		h := commands.AddEntry(input, inputHistory)
 		inputHistory = append(inputHistory, *h)
 
-		var cmd string
-		var extraArgs []string
 		args := parser.ParseInput(input)
 		if args == nil {
 			continue
 		}
 
-		cmd = args[0]
-		if len(args) > 1 {
-			extraArgs = args[1:]
-		}
-
-		pipeArgs := make([]int, 0)
-		for i, arg := range extraArgs {
-			if arg == "|" {
-				pipeArgs = append(pipeArgs, i)
-			}
-		}
-
-		invalid := false
-		var redCmd parser.RedirectionCommands
-
-		redirectCommands := parser.Redirection()
-		for i, arg := range extraArgs {
-			if c, ok := redirectCommands[arg]; ok {
-				if i+1 >= len(extraArgs) {
-					fmt.Println("invaid command input")
-					invalid = true
-					break
-				} else {
-					if i+1 != len(extraArgs)-1 {
-						fmt.Println("invalid command input, too many destination arguments")
-						break
-					}
-					redCmd = c
-				}
-			}
-		}
-
-		if invalid {
-			continue
-		}
-
-		builtinCmds := commands.Commands()
-
-		if command, exists := builtinCmds[cmd]; exists {
-			command.Callback(command.Name, redCmd.Name, pipeArgs, &inputHistory, extraArgs...)
-		} else {
-			commands.HandleExec(cmd, redCmd.Name, pipeArgs, extraArgs...)
+		pipeline, file := ParsePipeline(args)
+		sh.Executor(pipeline)
+		if file != nil {
+			file.Close()
 		}
 	}
+}
+
+
+func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
+	pipeline := commands.NewPipeline()
+	isFirstArg := true
+	var f *os.File
+
+	cmd := commands.Command{
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "|":
+			pipeline.Commands = append(pipeline.Commands, cmd)
+			cmd = commands.Command{
+				Stdin:  os.Stdin,
+				Stdout: os.Stdout,
+				Stderr: os.Stderr,
+			}
+			isFirstArg = true
+
+		case isFirstArg:
+			cmd.Name = arg
+			isFirstArg = false
+
+		case isRedirection(arg):
+			if i+1 < len(args) {
+				target := args[i+1]
+				r := parser.Redirect{
+					Operator: parser.Redirector(arg),
+					Target:   target,
+				}
+				f, err := r.Apply(&cmd)
+				if err != nil {
+					fmt.Fprint(os.Stderr, err)
+					return pipeline, f
+				}
+				i++
+			}
+
+		default:
+			cmd.Args = append(cmd.Args, arg)
+		}
+	}
+
+	if cmd.Name != "" {
+		pipeline.Commands = append(pipeline.Commands, cmd)
+	}
+
+	return pipeline, f
+}
+
+
+func isRedirection(token string) bool {
+	redirectionOperators := parser.Redirection()
+	if _, ok := redirectionOperators[token]; !ok {
+		return false
+	}
+
+	return true
 }
