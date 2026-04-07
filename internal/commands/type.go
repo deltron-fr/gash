@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/deltron-fr/dshell/fs"
+	"github.com/deltron-fr/gash/internal/fs"
 )
 
 func (sh *Shell) Type(cmd *Command) error {

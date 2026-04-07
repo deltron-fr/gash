@@ -6,7 +6,7 @@ import (
 
 	"os/exec"
 
-	"github.com/deltron-fr/dshell/fs"
+	"github.com/deltron-fr/gash/internal/fs"
 )
 
 var ErrNotExec = fmt.Errorf("the provided file is not executable")

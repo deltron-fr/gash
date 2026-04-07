@@ -1,4 +1,4 @@
-module github.com/deltron-fr/dshell
+module github.com/deltron-fr/gash
 
 go 1.24.4
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/deltron-fr/dshell/commands"
-	"github.com/deltron-fr/dshell/input"
-	"github.com/deltron-fr/dshell/parser"
+	"github.com/deltron-fr/gash/internal/commands"
+	"github.com/deltron-fr/gash/internal/input"
+	"github.com/deltron-fr/gash/internal/parser"
 )
 
 func StartRepl() {
@@ -17,7 +17,7 @@ func StartRepl() {
 	//
 	// `exit` builtin will terminate this process.
 	var buffer string
-	var HistFile = os.Getenv("HISTFILE")
+	HistFile := os.Getenv("HISTFILE")
 
 	sh := commands.NewShell()
 	sh.LoadHistoryToMemory(HistFile)
@@ -57,7 +57,6 @@ func StartRepl() {
 		}
 	}
 }
-
 
 // ParsePipeline builds a pipeline from parsed args and applies any redirections.
 // It returns the pipeline plus the last redirection file opened (if any).
@@ -114,7 +113,6 @@ func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
 
 	return pipeline, f
 }
-
 
 // isRedirection reports whether a token is a supported redirection operator.
 func isRedirection(token string) bool {

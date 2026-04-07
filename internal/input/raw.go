@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/deltron-fr/dshell/commands"
+	"github.com/deltron-fr/gash/internal/commands"
 	"golang.org/x/term"
 )
 

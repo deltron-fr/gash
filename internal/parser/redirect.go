@@ -3,7 +3,7 @@ package parser
 import (
 	"os"
 
-	"github.com/deltron-fr/dshell/commands"
+	"github.com/deltron-fr/gash/internal/commands"
 )
 
 // Redirector is a redirection operator token (e.g. ">", "2>>").

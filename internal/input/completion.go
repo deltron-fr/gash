@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deltron-fr/dshell/commands"
+	"github.com/deltron-fr/gash/internal/commands"
 )
 
 // autoCompletion tries the completion sources in order and
