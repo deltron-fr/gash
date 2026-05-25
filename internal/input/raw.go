@@ -165,8 +165,9 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 				}
 
 				parts := strings.Split(string(buffer), " ")
+				hasCommand := len(parts) > 1
 				targetInput := parts[len(parts)-1]
-				restOfInput := autoCompletion(targetInput)
+				restOfInput, isDir := autoCompletion( targetInput, hasCommand)
 				if len(restOfInput) == 0 {
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue
@@ -198,8 +199,13 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 					buffer = append(buffer, b)
 					cursorPos++
 				}
-				fmt.Fprintf(os.Stdout, " ")
-				buffer = append(buffer, ' ')
+				if !isDir {
+					fmt.Fprintf(os.Stdout, " ")
+					buffer = append(buffer, ' ')
+				} else {
+					fmt.Fprintf(os.Stdout, "%c", os.PathSeparator)
+					buffer = append(buffer, os.PathSeparator)
+				}
 				cursorPos++
 			}
 		} else {

@@ -3,6 +3,7 @@ package input
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -11,23 +12,27 @@ import (
 
 // autoCompletion tries the completion sources in order and
 // returns the first non-empty set of byte-slices to use for tab completion.
-func autoCompletion(input string) [][]byte {
-	out := autoCompleteCmds(input)
-	if len(out) != 0 {
-		return out
+func autoCompletion(input string, hasCommand bool) ([][]byte, bool) {
+	if !hasCommand {
+		out := autoCompleteCmds(input)
+		if len(out) != 0 {
+			return out, false
+		}
+
+		out = autoCompleteCmdPath(input)
+		if len(out) != 0 {
+			return out, false
+		}
+
+		return [][]byte{}, false
 	}
 
-	out = autoCompleteFiles(input)
+	out, isDir := autoCompleteFiles(input)
 	if len(out) != 0 {
-		return out
+		return out, isDir
 	}
 
-	out = autoCompleteCmdPath(input)
-	if len(out) != 0 {
-		return out
-	}
-
-	return [][]byte{}
+	return [][]byte{}, false
 }
 
 func autoCompleteCmds(input string) [][]byte {
@@ -100,36 +105,75 @@ func autoCompleteCmdPath(input string) [][]byte {
 // the provided input string. Returns either a list of full matches
 // or a single entry containing only the suffix to append if only
 // one match is found.
-func autoCompleteFiles(input string) [][]byte {
-
+func autoCompleteFiles(input string) ([][]byte, bool) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting current working directory: %v", err)
-		return [][]byte{}
-	}
-
-	files, err := os.ReadDir(pwd)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
-		return [][]byte{}
+		return [][]byte{}, false
 	}
 
 	matches := make([][]byte, 0, 70)
-	for _, f := range files {
-		if strings.HasPrefix(f.Name(), input) {
-			matches = append(matches, []byte(f.Name()))
+
+	if strings.ContainsRune(input, os.PathSeparator) {
+		parts := strings.Split(input, string(os.PathSeparator))
+		input = parts[len(parts)-1]
+
+		filepath := strings.Join(parts[:len(parts)-1], string(os.PathSeparator))
+		pwd = filepath
+		files, err := os.ReadDir(filepath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
+			return [][]byte{}, false
+		}
+
+		for _, f := range files {
+			if strings.HasPrefix(f.Name(), input) {
+				matches = append(matches, []byte(f.Name()))
+			}
+		}
+	} else {
+
+		files, err := os.ReadDir(pwd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
+			return [][]byte{}, false
+		}
+
+		for _, f := range files {
+			if strings.HasPrefix(f.Name(), input) {
+				matches = append(matches, []byte(f.Name()))
+			}
 		}
 	}
 
 	if len(matches) == 0 {
-		return [][]byte{}
+		if file, _ := os.ReadDir(pwd); len(file) == 1 {
+			return singleMatchHelper(file[0].Name(), pwd, input)
+		}
+
+		return [][]byte{}, false
 	} else if len(matches) == 1 {
-		singleMatch := make([][]byte, 0, 1)
-		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
-		return singleMatch
+		return singleMatchHelper(string(matches[0]), pwd, input)
 	}
 
-	return matches
+	return matches, false
+}
+
+func singleMatchHelper(singleMatch, pwd, input string) ([][]byte, bool) {
+	info, err := os.Stat(filepath.Join(pwd, string(singleMatch)))
+	if err != nil {
+		return [][]byte{}, false
+	}
+
+	isDir := false
+	if info.IsDir() {
+		isDir = true
+	}
+
+	match := make([][]byte, 0, 1)
+	match = append(match, []byte(singleMatch[len(input):]))
+
+	return match, isDir
 }
 
 func checkLongestCommonPrefix(matches []string) string {
