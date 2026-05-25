@@ -3,36 +3,35 @@ package input
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/deltron-fr/gash/internal/commands"
 )
 
-// autoCompletion tries the completion sources in order and
-// returns the first non-empty set of byte-slices to use for tab completion.
-func autoCompletion(input string, hasCommand bool) ([][]byte, bool) {
+// autoCompletion tries the completion sources and returns the first non-empty result.
+// If no matches are found, it returns an empty slice.
+func autoCompletion(input string, hasCommand bool) [][]byte {
 	if !hasCommand {
 		out := autoCompleteCmds(input)
 		if len(out) != 0 {
-			return out, false
+			return out
 		}
 
 		out = autoCompleteCmdPath(input)
 		if len(out) != 0 {
-			return out, false
+			return out
 		}
 
-		return [][]byte{}, false
+		return [][]byte{}
 	}
 
-	out, isDir := autoCompleteFiles(input)
+	out := autoCompleteFiles(input)
 	if len(out) != 0 {
-		return out, isDir
+		return out
 	}
 
-	return [][]byte{}, false
+	return [][]byte{}
 }
 
 func autoCompleteCmds(input string) [][]byte {
@@ -49,9 +48,7 @@ func autoCompleteCmds(input string) [][]byte {
 	if len(matches) == 0 {
 		return [][]byte{}
 	} else if len(matches) == 1 {
-		singleMatch := make([][]byte, 0, 1)
-		singleMatch = append(singleMatch, []byte(matches[0][len(input):]))
-		return singleMatch
+		return singleMatchHelper(string(matches[0]), input)
 	}
 
 	return matches
@@ -105,14 +102,14 @@ func autoCompleteCmdPath(input string) [][]byte {
 // the provided input string. Returns either a list of full matches
 // or a single entry containing only the suffix to append if only
 // one match is found.
-func autoCompleteFiles(input string) ([][]byte, bool) {
+func autoCompleteFiles(input string) [][]byte {
 	pwd, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting current working directory: %v", err)
-		return [][]byte{}, false
+		return [][]byte{}
 	}
 
-	matches := make([][]byte, 0, 70)
+	matches := make([][]byte, 0, 30)
 
 	if strings.ContainsRune(input, os.PathSeparator) {
 		parts := strings.Split(input, string(os.PathSeparator))
@@ -123,12 +120,16 @@ func autoCompleteFiles(input string) ([][]byte, bool) {
 		files, err := os.ReadDir(filepath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
-			return [][]byte{}, false
+			return [][]byte{}
 		}
 
 		for _, f := range files {
 			if strings.HasPrefix(f.Name(), input) {
-				matches = append(matches, []byte(f.Name()))
+				if !f.IsDir() {
+					matches = append(matches, []byte(f.Name()+" "))
+				} else {
+					matches = append(matches, []byte(f.Name()+string(os.PathSeparator)))
+				}
 			}
 		}
 	} else {
@@ -136,44 +137,38 @@ func autoCompleteFiles(input string) ([][]byte, bool) {
 		files, err := os.ReadDir(pwd)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading directory: %v", err)
-			return [][]byte{}, false
+			return [][]byte{}
 		}
 
 		for _, f := range files {
 			if strings.HasPrefix(f.Name(), input) {
-				matches = append(matches, []byte(f.Name()))
+				if !f.IsDir() {
+					matches = append(matches, []byte(f.Name()+" "))
+				} else {
+					matches = append(matches, []byte(f.Name()+string(os.PathSeparator)))
+				}
 			}
 		}
 	}
 
 	if len(matches) == 0 {
 		if file, _ := os.ReadDir(pwd); len(file) == 1 {
-			return singleMatchHelper(file[0].Name(), pwd, input)
+			return singleMatchHelper(file[0].Name(), input)
 		}
 
-		return [][]byte{}, false
+		return [][]byte{}
 	} else if len(matches) == 1 {
-		return singleMatchHelper(string(matches[0]), pwd, input)
+		return singleMatchHelper(string(matches[0]), input)
 	}
 
-	return matches, false
+	return matches
 }
 
-func singleMatchHelper(singleMatch, pwd, input string) ([][]byte, bool) {
-	info, err := os.Stat(filepath.Join(pwd, string(singleMatch)))
-	if err != nil {
-		return [][]byte{}, false
-	}
-
-	isDir := false
-	if info.IsDir() {
-		isDir = true
-	}
-
+func singleMatchHelper(singleMatch, input string) [][]byte {
 	match := make([][]byte, 0, 1)
 	match = append(match, []byte(singleMatch[len(input):]))
 
-	return match, isDir
+	return match
 }
 
 func checkLongestCommonPrefix(matches []string) string {

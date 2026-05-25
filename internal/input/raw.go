@@ -167,7 +167,7 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 				parts := strings.Split(string(buffer), " ")
 				hasCommand := len(parts) > 1
 				targetInput := parts[len(parts)-1]
-				restOfInput, isDir := autoCompletion( targetInput, hasCommand)
+				restOfInput := autoCompletion(targetInput, hasCommand)
 				if len(restOfInput) == 0 {
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue
@@ -182,11 +182,10 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 					}
 
 					lcp := checkLongestCommonPrefix(matches)
-					if len(lcp) > len(buffer) && lcp != string(buffer) {
-						bufferLen := len(buffer)
-						fmt.Fprint(os.Stdout, lcp[bufferLen:])
-						cursorPos += len(lcp[bufferLen:])
-						buffer = append(buffer, []byte(lcp[bufferLen:])...)
+					if len(lcp) > len(targetInput) && lcp != targetInput {
+						fmt.Fprint(os.Stdout, lcp[len(targetInput):])
+						cursorPos += len(lcp[len(targetInput):])
+						buffer = append(buffer, []byte(lcp[len(targetInput):])...)
 					}
 
 					tabPressed = true
@@ -199,14 +198,6 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 					buffer = append(buffer, b)
 					cursorPos++
 				}
-				if !isDir {
-					fmt.Fprintf(os.Stdout, " ")
-					buffer = append(buffer, ' ')
-				} else {
-					fmt.Fprintf(os.Stdout, "%c", os.PathSeparator)
-					buffer = append(buffer, os.PathSeparator)
-				}
-				cursorPos++
 			}
 		} else {
 			if cursorPos == len(buffer) {
