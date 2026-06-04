@@ -23,6 +23,7 @@ func StartRepl() {
 	sh.LoadHistoryToMemory(HistFile)
 
 	for {
+		sh.DrainJobUpdates()
 		fmt.Print("$ ")
 
 		input, tabMatches := input.RawModeHandler(buffer, sh.History)
@@ -50,8 +51,8 @@ func StartRepl() {
 			continue
 		}
 
-		pipeline, file := ParsePipeline(args)
-		sh.Executor(pipeline)
+		pipeline, file, bg := ParsePipeline(args)
+		sh.Executor(pipeline, bg)
 		if file != nil {
 			file.Close()
 		}
@@ -60,15 +61,21 @@ func StartRepl() {
 
 // ParsePipeline builds a pipeline from parsed args and applies any redirections.
 // It returns the pipeline plus the last redirection file opened (if any).
-func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
+func ParsePipeline(args []string) (*commands.Pipeline, *os.File, bool) {
 	pipeline := commands.NewPipeline()
 	isFirstArg := true
+	isBackgroundJob := false
 	var f *os.File
 
 	cmd := commands.Command{
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+	}
+
+	if args[len(args)-1] == "&" {
+		isBackgroundJob = true
+		args = args[:len(args)-1]
 	}
 
 	for i := 0; i < len(args); i++ {
@@ -97,7 +104,7 @@ func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
 				f, err := r.Apply(&cmd)
 				if err != nil {
 					fmt.Fprint(os.Stderr, err)
-					return pipeline, f
+					return pipeline, f, isBackgroundJob
 				}
 				i++
 			}
@@ -111,7 +118,7 @@ func ParsePipeline(args []string) (*commands.Pipeline, *os.File) {
 		pipeline.Commands = append(pipeline.Commands, cmd)
 	}
 
-	return pipeline, f
+	return pipeline, f, isBackgroundJob
 }
 
 // isRedirection reports whether a token is a supported redirection operator.
