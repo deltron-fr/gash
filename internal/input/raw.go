@@ -167,7 +167,12 @@ func RawModeHandler(sh shell.Shell, currentBuffer string, history []shell.Histor
 				parts := strings.Split(string(buffer), " ")
 				hasCommand := len(parts) > 1
 				targetInput := parts[len(parts)-1]
-				restOfInput := autoCompletion(sh, targetInput, parts[0], hasCommand)
+				var precedingWord string
+				if len(parts) > 2 {
+					precedingWord = parts[len(parts)-2]
+				}
+				// TODO: not checking parts length, future bug?
+				restOfInput := autoCompletion(sh, targetInput, parts[0], precedingWord, hasCommand)
 				if len(restOfInput) == 0 {
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue

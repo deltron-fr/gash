@@ -15,7 +15,7 @@ import (
 
 // autoCompletion tries the completion sources and returns the first non-empty result.
 // If no matches are found, it returns an empty slice.
-func autoCompletion(sh shell.Shell, input, commandName string, hasCommand bool) [][]byte {
+func autoCompletion(sh shell.Shell, input, commandName, precedingWord string, hasCommand bool) [][]byte {
 	if !hasCommand {
 		out := autoCompleteCmds(input)
 		if len(out) != 0 {
@@ -32,7 +32,12 @@ func autoCompletion(sh shell.Shell, input, commandName string, hasCommand bool) 
 
 	path, ok := sh.CompleteScripts[commandName]
 	if ok {
-		return singleMatchHelper(runCompleteScript(path), input)
+		out := runCompleteScript(path, commandName, input, precedingWord)
+		if out == "" {
+			return [][]byte{}
+		}
+
+		return singleMatchHelper(out, input)
 	}
 
 	out := autoCompleteFiles(input)
@@ -173,8 +178,8 @@ func autoCompleteFiles(input string) [][]byte {
 	return matches
 }
 
-func runCompleteScript(path string) string {
-	cmd := exec.Command(path)
+func runCompleteScript(path, commandName, partialWord, precedingWord string) string {
+	cmd := exec.Command(path, commandName, partialWord, precedingWord)
 
 	var buf bytes.Buffer
 	tempWriter := bufio.NewWriter(&buf)
@@ -184,6 +189,15 @@ func runCompleteScript(path string) string {
 
 	err := cmd.Run()
 	if err != nil {
+		return ""
+	}
+
+	err = tempWriter.Flush()
+	if err != nil {
+		return ""
+	}
+
+	if buf.String() == "" {
 		return ""
 	}
 
