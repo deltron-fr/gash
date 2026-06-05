@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/deltron-fr/gash/internal/commands"
+	"github.com/deltron-fr/gash/internal/shell"
 	"golang.org/x/term"
 )
 
-func RawModeHandler(currentBuffer string, history []commands.History) (string, []string) {
+func RawModeHandler(sh shell.Shell, currentBuffer string, history []shell.History) (string, []string) {
 	// RawModeHandler enters the terminal's raw mode and reads user input
 	// byte-by-byte. It supports basic line editing (left/right/delete),
 	// tab completion, and returns once the user presses Enter.
@@ -167,7 +167,7 @@ func RawModeHandler(currentBuffer string, history []commands.History) (string, [
 				parts := strings.Split(string(buffer), " ")
 				hasCommand := len(parts) > 1
 				targetInput := parts[len(parts)-1]
-				restOfInput := autoCompletion(targetInput, hasCommand)
+				restOfInput := autoCompletion(sh, targetInput, parts[0], hasCommand)
 				if len(restOfInput) == 0 {
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue

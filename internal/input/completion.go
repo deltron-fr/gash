@@ -1,17 +1,21 @@
 package input
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
 	"github.com/deltron-fr/gash/internal/commands"
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
 // autoCompletion tries the completion sources and returns the first non-empty result.
 // If no matches are found, it returns an empty slice.
-func autoCompletion(input string, hasCommand bool) [][]byte {
+func autoCompletion(sh shell.Shell, input, commandName string, hasCommand bool) [][]byte {
 	if !hasCommand {
 		out := autoCompleteCmds(input)
 		if len(out) != 0 {
@@ -24,6 +28,11 @@ func autoCompletion(input string, hasCommand bool) [][]byte {
 		}
 
 		return [][]byte{}
+	}
+
+	path, ok := sh.CompleteScripts[commandName]
+	if ok {
+		return singleMatchHelper(runCompleteScript(path), input)
 	}
 
 	out := autoCompleteFiles(input)
@@ -162,6 +171,23 @@ func autoCompleteFiles(input string) [][]byte {
 	}
 
 	return matches
+}
+
+func runCompleteScript(path string) string {
+	cmd := exec.Command(path)
+
+	var buf bytes.Buffer
+	tempWriter := bufio.NewWriter(&buf)
+
+	cmd.Stdout = tempWriter
+	cmd.Stderr = tempWriter
+
+	err := cmd.Run()
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(buf.String()) + " "
 }
 
 func singleMatchHelper(singleMatch, input string) [][]byte {

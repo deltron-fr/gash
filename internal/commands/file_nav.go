@@ -3,11 +3,13 @@ package commands
 import (
 	"fmt"
 	"os"
+
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
 var ErrTooManyArguments = fmt.Errorf("too many arguments")
 
-func (sh *Shell) Pwd(cmd *Command) error {
+func Pwd(_ *shell.Shell, cmd *shell.Command) error {
 	path, err := os.Getwd()
 	if err != nil {
 		_, err = fmt.Fprint(cmd.Stderr, err)
@@ -18,7 +20,7 @@ func (sh *Shell) Pwd(cmd *Command) error {
 	return nil
 }
 
-func (sh *Shell) Cd(cmd *Command) error {
+func Cd(_ *shell.Shell, cmd *shell.Command) error {
 	if len(cmd.Args) > 1 {
 		fmt.Fprint(cmd.Stderr, "too many arguments")
 		return ErrTooManyArguments

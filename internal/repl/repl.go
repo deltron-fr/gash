@@ -7,6 +7,7 @@ import (
 	"github.com/deltron-fr/gash/internal/commands"
 	"github.com/deltron-fr/gash/internal/input"
 	"github.com/deltron-fr/gash/internal/parser"
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
 func StartRepl() {
@@ -19,14 +20,15 @@ func StartRepl() {
 	var buffer string
 	HistFile := os.Getenv("HISTFILE")
 
-	sh := commands.NewShell()
-	sh.LoadHistoryToMemory(HistFile)
+	sh := shell.NewShell()
+	commands.RegisterBuiltins(sh)
+	commands.LoadHistoryToMemory(sh, HistFile)
 
 	for {
 		sh.DrainJobUpdates()
 		fmt.Print("$ ")
 
-		input, tabMatches := input.RawModeHandler(buffer, sh.History)
+		input, tabMatches := input.RawModeHandler(*sh, buffer, sh.History)
 
 		if len(tabMatches) > 0 {
 			for _, match := range tabMatches {
@@ -61,13 +63,13 @@ func StartRepl() {
 
 // ParsePipeline builds a pipeline from parsed args and applies any redirections.
 // It returns the pipeline plus the last redirection file opened (if any).
-func ParsePipeline(args []string) (*commands.Pipeline, *os.File, bool) {
-	pipeline := commands.NewPipeline()
+func ParsePipeline(args []string) (*shell.Pipeline, *os.File, bool) {
+	pipeline := shell.NewPipeline()
 	isFirstArg := true
 	isBackgroundJob := false
 	var f *os.File
 
-	cmd := commands.Command{
+	cmd := shell.Command{
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -83,7 +85,7 @@ func ParsePipeline(args []string) (*commands.Pipeline, *os.File, bool) {
 		switch {
 		case arg == "|":
 			pipeline.Commands = append(pipeline.Commands, cmd)
-			cmd = commands.Command{
+			cmd = shell.Command{
 				Stdin:  os.Stdin,
 				Stdout: os.Stdout,
 				Stderr: os.Stderr,

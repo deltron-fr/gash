@@ -6,19 +6,13 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
-// History stores one command entry plus bookkeeping for file persistence.
-type History struct {
-	Counter   int
-	Name      string
-	InFile    bool
-	InFileArg bool
-}
-
 // AddEntry builds a new history record with the next counter value.
-func AddEntry(cmd string, history []History) *History {
-	return &History{
+func AddEntry(cmd string, history []shell.History) *shell.History {
+	return &shell.History{
 		Counter: len(history) + 1,
 		Name:    cmd,
 	}
@@ -31,7 +25,7 @@ var ErrInvalidOptions = fmt.Errorf("invalid option")
 // With a single numeric arg it prints the last N entries.
 // With two args it accepts an option (-r, -w, -a) and a filename to
 // read, write, or append the history file.
-func (sh *Shell) HistoryCmd(cmd *Command) error {
+func HistoryCmd(sh *shell.Shell, cmd *shell.Command) error {
 	h := sh.History
 	if len(h) <= 0 {
 		return nil
@@ -80,7 +74,7 @@ func (sh *Shell) HistoryCmd(cmd *Command) error {
 				}
 
 				for _, line := range entries {
-					sh.History = append(sh.History, History{
+					sh.History = append(sh.History, shell.History{
 						Name:      line,
 						Counter:   len(sh.History) + 1,
 						InFileArg: true,
@@ -88,12 +82,12 @@ func (sh *Shell) HistoryCmd(cmd *Command) error {
 					)
 				}
 			case "-w":
-				err := sh.writeHistoryToFile(cmd.Args[1])
+				err := writeHistoryToFile(sh, cmd.Args[1])
 				if err != nil {
 					return err
 				}
 			case "-a":
-				err := sh.appendHistoryToFile(cmd.Args[1])
+				err := appendHistoryToFile(sh, cmd.Args[1])
 				if err != nil {
 					return err
 				}
@@ -131,7 +125,7 @@ func readHistoryFromFile(path string) []string {
 	return history
 }
 
-func (sh *Shell) writeHistoryToFile(path string) error {
+func writeHistoryToFile(sh *shell.Shell, path string) error {
 
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
@@ -156,7 +150,7 @@ func (sh *Shell) writeHistoryToFile(path string) error {
 	return nil
 }
 
-func (sh *Shell) appendHistoryToFile(path string) error {
+func appendHistoryToFile(sh *shell.Shell, path string) error {
 	// appendHistoryToFile appends any in-memory entries that are not
 	// already saved (InFileArg == false) to `path`.
 
@@ -186,7 +180,7 @@ func (sh *Shell) appendHistoryToFile(path string) error {
 
 }
 
-func (sh *Shell) LoadHistoryToMemory(path string) {
+func LoadHistoryToMemory(sh *shell.Shell, path string) {
 	// LoadHistoryToMemory reads `path` and appends its non-empty
 	// lines to the provided history slice.
 
@@ -205,7 +199,7 @@ func (sh *Shell) LoadHistoryToMemory(path string) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line != "" {
-			sh.History = append(sh.History, History{
+			sh.History = append(sh.History, shell.History{
 				Name:    line,
 				Counter: len(sh.History) + 1,
 				InFile:  true,

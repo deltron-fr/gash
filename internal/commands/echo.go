@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"strings"
+
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
-func (sh *Shell) Echo(cmd *Command) error {
+func Echo(_ *shell.Shell, cmd *shell.Command) error {
 
 	buf := bufio.NewWriter(cmd.Stdout)
 	_, err := fmt.Fprint(buf, strings.Join(cmd.Args, " "), "\n")

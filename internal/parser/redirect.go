@@ -3,7 +3,7 @@ package parser
 import (
 	"os"
 
-	"github.com/deltron-fr/gash/internal/commands"
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
 // Redirector is a redirection operator token (e.g. ">", "2>>").
@@ -50,11 +50,10 @@ func Redirection() map[string]RedirectionCommands {
 		},
 	}
 	return commands
-
 }
 
 // Apply opens the target file and attaches it to the command's IO.
-func (r *Redirect) Apply(cmd *commands.Command) (*os.File, error) {
+func (r *Redirect) Apply(cmd *shell.Command) (*os.File, error) {
 	var file *os.File
 	var err error
 
@@ -74,14 +73,14 @@ func (r *Redirect) Apply(cmd *commands.Command) (*os.File, error) {
 
 		cmd.Stderr = file
 	case ">>", "1>>":
-		file, err := os.OpenFile(r.Target, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(r.Target, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return nil, err
 		}
 
 		cmd.Stdout = file
 	case "2>>":
-		file, err := os.OpenFile(r.Target, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(r.Target, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			return nil, err
 		}

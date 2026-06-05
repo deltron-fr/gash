@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
-func (sh *Shell) JobsCmd(cmd *Command) error {
+func JobsCmd(sh *shell.Shell, cmd *shell.Command) error {
 	length := len(sh.BackgroundJobs)
 	for i, job := range sh.BackgroundJobs {
 		cmdString := strings.Join(job.BackgroundProcess.Args, " ")
@@ -22,8 +24,8 @@ func (sh *Shell) JobsCmd(cmd *Command) error {
 		fmt.Fprintf(cmd.Stdout, "[%d]%s  %-24s%s\n", job.ID, marker, job.Status.String(), cmdString)
 	}
 
-	sh.BackgroundJobs = slices.DeleteFunc(sh.BackgroundJobs, func(job *BackgroundJob) bool {
-		return job.Status == StatusDone
+	sh.BackgroundJobs = slices.DeleteFunc(sh.BackgroundJobs, func(job *shell.BackgroundJob) bool {
+		return job.Status == shell.StatusDone
 	})
 
 	return nil

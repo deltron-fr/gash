@@ -5,17 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/deltron-fr/gash/internal/shell"
 )
 
-func (sh *Shell) Exit(cmd *Command) error {
+func Exit(sh *shell.Shell, cmd *shell.Command) error {
 	histFile := os.Getenv("HISTFILE")
-	sh.loadMemoryToHistFile(histFile)
+	loadMemoryToHistFile(sh, histFile)
 
 	os.Exit(0)
 	return nil
 }
 
-func (sh *Shell) loadMemoryToHistFile(path string) {
+func loadMemoryToHistFile(sh *shell.Shell, path string) {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
