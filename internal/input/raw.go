@@ -168,11 +168,17 @@ func RawModeHandler(sh shell.Shell, currentBuffer string, history []shell.Histor
 				hasCommand := len(parts) > 1
 				targetInput := parts[len(parts)-1]
 				var precedingWord string
-				if len(parts) > 2 {
+				if len(parts) >= 2 {
 					precedingWord = parts[len(parts)-2]
 				}
 				// TODO: not checking parts length, future bug?
-				restOfInput := autoCompletion(sh, targetInput, parts[0], precedingWord, hasCommand)
+				restOfInput := autoCompletion(sh, CompletionParams{
+					input:         targetInput,
+					commandName:   parts[0],
+					precedingWord: precedingWord,
+					hasCommand:    hasCommand,
+					compLine:      strings.Join(parts, " "),
+				})
 				if len(restOfInput) == 0 {
 					fmt.Fprintf(os.Stdout, "\x07")
 					continue

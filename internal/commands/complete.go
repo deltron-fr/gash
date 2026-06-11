@@ -23,6 +23,10 @@ func completeArgs() map[string]completeOptions {
 			Name:        "-C",
 			Description: "registers a completer script for a command",
 		},
+		"-r": {
+			Name:        "-r",
+			Description: "unregisters a completer script for a command",
+		},
 	}
 	return options
 }
@@ -46,6 +50,14 @@ func Complete(sh *shell.Shell, cmd *shell.Command) error {
 				}
 
 				fmt.Fprintf(cmd.Stdout, "complete -C '%s' %s\n", path, cmd.Args[1])
+			case "-r":
+				_, ok := sh.CompleteScripts[cmd.Args[1]]
+				if !ok {
+					fmt.Fprintf(cmd.Stderr, "%s: %s: no completion specification\n", cmd.Name, cmd.Args[1])
+					return ErrNoCompletionSpec
+				}
+
+				delete(sh.CompleteScripts, cmd.Args[1])
 			}
 		}
 	case 3:

@@ -13,16 +13,24 @@ import (
 	"github.com/deltron-fr/gash/internal/shell"
 )
 
+type CompletionParams struct {
+	input         string // the incomplete string for normal tab autocompletion without a completer script
+	commandName   string // name of completion command
+	precedingWord string
+	compLine      string
+	hasCommand    bool // simple flag to determine if it is file completion vs command completion
+}
+
 // autoCompletion tries the completion sources and returns the first non-empty result.
 // If no matches are found, it returns an empty slice.
-func autoCompletion(sh shell.Shell, input, commandName, precedingWord string, hasCommand bool) [][]byte {
-	if !hasCommand {
-		out := autoCompleteCmds(input)
+func autoCompletion(sh shell.Shell, cp CompletionParams) [][]byte {
+	if !cp.hasCommand {
+		out := autoCompleteCmds(cp.input)
 		if len(out) != 0 {
 			return out
 		}
 
-		out = autoCompleteCmdPath(input)
+		out = autoCompleteCmdPath(cp.input)
 		if len(out) != 0 {
 			return out
 		}
@@ -30,17 +38,17 @@ func autoCompletion(sh shell.Shell, input, commandName, precedingWord string, ha
 		return [][]byte{}
 	}
 
-	path, ok := sh.CompleteScripts[commandName]
+	path, ok := sh.CompleteScripts[cp.commandName]
 	if ok {
-		out := runCompleteScript(path, commandName, input, precedingWord)
-		if out == "" {
+		out := runCompleteScript(path, cp)
+		if len(out) == 0 {
 			return [][]byte{}
 		}
 
-		return singleMatchHelper(out, input)
+		return out
 	}
 
-	out := autoCompleteFiles(input)
+	out := autoCompleteFiles(cp.input)
 	if len(out) != 0 {
 		return out
 	}
@@ -178,8 +186,10 @@ func autoCompleteFiles(input string) [][]byte {
 	return matches
 }
 
-func runCompleteScript(path, commandName, partialWord, precedingWord string) string {
-	cmd := exec.Command(path, commandName, partialWord, precedingWord)
+func runCompleteScript(path string, cp CompletionParams) [][]byte {
+	cmd := exec.Command(path, cp.commandName, cp.input, cp.precedingWord)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("COMP_LINE=%s", cp.compLine))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("COMP_POINT=%d", len(cp.compLine)))
 
 	var buf bytes.Buffer
 	tempWriter := bufio.NewWriter(&buf)
@@ -189,19 +199,29 @@ func runCompleteScript(path, commandName, partialWord, precedingWord string) str
 
 	err := cmd.Run()
 	if err != nil {
-		return ""
+		return [][]byte{}
 	}
 
 	err = tempWriter.Flush()
 	if err != nil {
-		return ""
+		return [][]byte{}
 	}
 
 	if buf.String() == "" {
-		return ""
+		return [][]byte{}
 	}
 
-	return strings.TrimSpace(buf.String()) + " "
+	parts := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(parts) == 1 {
+		return singleMatchHelper(parts[0]+" ", cp.input)
+	}
+
+	matches := make([][]byte, 0)
+	for _, p := range parts {
+		matches = append(matches, []byte(p+" "))
+	}
+
+	return matches
 }
 
 func singleMatchHelper(singleMatch, input string) [][]byte {
