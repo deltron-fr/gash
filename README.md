@@ -1,92 +1,184 @@
-# Go Again Shell (Gash)
+# gash
 
-A minimal Unix-like shell implemented from scratch to explore parsing, terminal control, process execution, and command I/O. This repository is a systems-learning project rather than a replacement for existing shells. It focuses on the pieces developers need to understand to build a working command interpreter.
+`gash` is a small interactive Unix-like shell written in Go. It supports builtins, external commands, pipelines, redirection, tab completion, command history, and background jobs.
 
-### Goal
-This project is an exploration of Unix shell internals. Rather than relying on high-level abstractions, core features such as line editing, tab completion, and command parsing are implemented from scratch. The goal is to move past library-managed behavior and gain an understanding of how a REPL interacts with terminal raw mode, process execution and file descriptor-based I/O.
+## Install
 
----
-
-## Running locally
-- Build / run:
+Install the binary with Go:
 
 ```bash
-# run the shell directly
-go run ./...
+go install github.com/deltron-fr/gash/cmd/gash@latest
 ```
 
----
+Or run it directly from the repository:
 
-## Core architecture
-- REPL
-  - `repl.StartRepl` drives the read–eval–print loop: prompt, read a line, parse, detect redirections, and dispatch to builtin handlers or external commands.
-- Lexer / Parser
-  - `parser.ParseInput` implements tokenization with support for single and double quotes and escape sequences. It returns nil on malformed input (eg. incomplete escapes/quotes).
-- Execution
-  - External commands are found via `fs.CheckPath` and executed in `commands.commandExec` / `commands.handleExec`, with optional stdout/stderr redirection.
-  - Pipelines are wired in `commands.Executor`, which connects command stdout/stdin using pipes and runs pipeline stages concurrently.
+```bash
+go run ./cmd/gash
+```
 
+## Quick start
 
-### Supporting subsystems
-- Terminal & Input
-  - Raw-mode input and a small, custom readline implementation are in `input/raw.go`. Arrow key handling is in `input/keys.go`.
+Start the shell:
 
-- Redirections
-  - Recognized redirection tokens are provided by `parser/redirect.go`. The REPL detects redirection usage and applies file redirection on each command before execution.
+```bash
+gash
+```
 
-- Completions
-  - Tab completion is implemented in `input/completion.go`.
-  - Sources: builtins (`commands.Commands()`), current directory entries, and executables found on `$PATH` (`fs.CheckPath` is used to test executability).
-  - Behavior: single-match returns the suffix to append; multiple matches can be listed; partial/ambiguous matches are handled via a longest-common-prefix helper.
-  - Note: multi-path completion for files (merging matches from different directories) is not implemented. The code currently enumerates `$PATH` entries and local files separately.
+Basic examples:
 
-- History
-  - In-memory history and persistence live in `commands/history.go`. There is a `history` builtin to list and read/write/append a history file; `repl` loads the history file on startup.
+```bash
+pwd
+cd ~/projects
+echo "hello"
+ls -la | grep go
+go test ./... > test.log
+sleep 30 &
+jobs
+```
 
----
+## Not yet supported
 
-## Technical deep dive
-This section briefly explains the important technical decisions and known limitations.
+`gash` is intentionally small. These are not implemented yet:
 
-#### Parsing and quoting
-- `parser.ParseInput` operates on runes to remain UTF-8 safe. It supports:
-  - Double quotes: allow escaping `"` and `\\` inside.
-  - Single quotes: treat content literally (backslashes are not interpreted inside single quotes).
-  - Backslashes outside quotes escape the next rune.
-- The parser returns `nil` on malformed input (for example, a backslash at end-of-input inside double quotes). See `parser/parser.go` for details.
+- A shell scripting language
+- Command substitution such as `$(...)`
+- Job control signals such as `fg`, `bg`, `SIGTSTP`, and `SIGCONT` handling
 
+## Architecture
 
-#### Terminal raw mode and readline
-- Raw-mode handling is implemented in `input/raw.go` using `golang.org/x/term` to switch the TTY into raw mode. The function reads bytes and implements minimal line-editing:
-  - Left/Right cursor movement, delete/backspace, tab completion hook, and up/down history navigation.
-- I implemented a custom readline to learn byte-level terminal interactions rather than relying on GNU Readline. This made it easier to explore how arrow sequences, control characters, and raw I/O behave.
+Implementation notes live in [docs/](docs/README.md), including an overview of the lexer, parser, executor, and readline flow.
 
+## Builtins
 
-#### Known limitations
-- Multiline editing: the current readline doesn't support multiline cursor navigation. Lines that wrap or explicit multiline input are not fully supported.
-- Job control: background/foreground jobs are not implemented yet.
+`gash` currently includes these builtins:
 
-#### Known Bugs
-- Backspace when cursor is not at end-of-line: deleting a character in the middle of the buffer can leave a visual space or otherwise corrupt the display; this is a bug to be fixed.
+| Command | Description |
+| --- | --- |
+| `cd` | Change the current working directory |
+| `pwd` | Print the current working directory |
+| `echo` | Print text |
+| `exit` | Exit the shell |
+| `type` | Show whether a command is a builtin or an executable on `PATH` |
+| `history` | Print history or read/write history files |
+| `jobs` | Show background jobs tracked by the shell |
+| `complete` | Register, inspect, or remove completion scripts |
 
----
+## Shell features
 
-## Features
-| Category | Feature | Notes |
-|:---|:---:|:---|
-| Tab Completion | Executables, Files, Dirs | Tab completes from builtins, cwd files, and `$PATH` executables; single match appends suffix, multiple matches can be listed. |
-| History | Up/Down navigation, `history` builtin, persistent store | History loads from `$HISTFILE` and supports write/append/read ops. |
-| Raw Mode | Terminal raw input + custom readline | Byte-level control for keys and editing. No multiline navigation yet. |
-| Logic | Multi-level quoting, basic escape rules | See `parser/parser.go` for exact rules. |
-| System | Stdout/Stderr redirection, append | Redirections handled in `commands/exec.go`; appending supported. |
-| System | Pipelining | Pipelines are wired in `commands.Executor` and run concurrently. |
-| Builtins | `cd`, `history`, `exit`, `echo`, `type`, `pwd` | Implemented in `commands/*.go`. |
-| Coming soon | Job control, multiline editing | Listed in roadmap. |
+### External commands
 
----
+Commands that are not builtins are resolved through `PATH` and executed as child processes.
 
-## Roadmap
-- Support multiline commands and robust cursor navigation for wrapped lines.
-- Add job control (background jobs).
-- Improve completion to merge and deduplicate entries found across multiple `$PATH` directories when completing executables.
-- Add more tests: unit tests for `parser.ParseInput` and completion helpers.
+### Pipelines
+
+Use `|` to connect commands:
+
+```bash
+cat go.mod | grep module
+```
+
+### Redirection
+
+Supported redirection operators:
+
+| Operator | Effect |
+| --- | --- |
+| `>` / `1>` | Redirect stdout |
+| `>>` / `1>>` | Append stdout |
+| `2>` | Redirect stderr |
+| `2>>` | Append stderr |
+
+Examples:
+
+```bash
+go test ./... > out.log
+go test ./... 2> err.log
+go test ./... >> out.log
+```
+
+### Background jobs
+
+Append `&` to run a command in the background:
+
+```bash
+sleep 30 &
+jobs
+```
+
+### Quoting and escaping
+
+`gash` supports:
+
+- Single quotes: `'literal text'`
+- Double quotes: `"quoted text"`
+- Backslash escaping outside quotes
+- Escaping `"` and `\` inside double quotes
+
+Examples:
+
+```bash
+echo 'hello world'
+echo "hello world"
+echo hello\ world
+```
+
+### Tab completion
+
+Tab completion supports:
+
+- Builtin commands
+- Executables found on `PATH`
+- Files and directories in the current working directory
+- Custom completion scripts registered with `complete -C`
+
+## History
+
+If `HISTFILE` is set, `gash` loads history from that file on startup.
+
+The `history` builtin supports:
+
+| Command | Description |
+| --- | --- |
+| `history` | Print all in-memory history entries |
+| `history N` | Print the last `N` entries |
+| `history -r <file>` | Read entries from a file into history |
+| `history -w <file>` | Write the current history to a file |
+| `history -a <file>` | Append the current session history to a file |
+
+Example:
+
+```bash
+export HISTFILE="$HOME/.gash_history"
+gash
+```
+
+## Completion scripts
+
+The `complete` builtin can register an executable script as a completer for a command:
+
+```bash
+complete -C ./scripts/my-completer git
+complete -p git
+complete -r git
+```
+
+The completer is executed with:
+
+- argv: `<command-name> <current-token> <previous-token>`
+- env: `COMP_LINE` and `COMP_POINT`
+
+Each completion candidate should be written on its own line.
+
+## Development
+
+Run locally:
+
+```bash
+go run ./cmd/gash
+```
+
+Run tests:
+
+```bash
+go test ./...
+```
